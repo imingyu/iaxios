@@ -1,0 +1,29 @@
+{
+  "name": "iaxios",
+  "version": "0.1.0",
+  "description": "使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imingyu/iaxios.git"
+  },
+  "keywords": [
+    "axios",
+    "ajax",
+    "iaxios",
+    "request"
+  ],
+  "author": "imingyu",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/imingyu/iaxios/issues"
+  },
+  "homepage": "https://github.com/imingyu/iaxios#readme",
+  "dependencies": {
+    "axios": "^0.16.2",
+    "qs": "^6.5.0"
+  }
+}
