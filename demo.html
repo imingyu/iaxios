@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <script src="./node_modules/axios/dist/axios.js"></script>
+    <script>
+        var CancelToken = axios.CancelToken;
+        var source = CancelToken.source();
+        axios.get('http://cnodejs.org/api/v1/topics', {
+            cancelToken: source.token
+        }).catch(function(thrown) {
+            console.log(thrown);
+            if (axios.isCancel(thrown)) {
+                console.log('Request canceled', thrown.message);
+            } else {
+                // handle error
+            }
+        });
+        source.cancel('Operation canceled by the user.');
+    </script>
+</body>
+
+</html>
