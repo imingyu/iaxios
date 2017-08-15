@@ -4,8 +4,8 @@
 	(global.iaxios = factory(global.axios,global.Qs));
 }(this, (function (axios,Qs) { 'use strict';
 
-axios = axios && 'default' in axios ? axios['default'] : axios;
-Qs = Qs && 'default' in Qs ? Qs['default'] : Qs;
+axios = axios && axios.hasOwnProperty('default') ? axios['default'] : axios;
+Qs = Qs && Qs.hasOwnProperty('default') ? Qs['default'] : Qs;
 
 var version = "0.1.0";
 

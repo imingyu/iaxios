@@ -1,11 +1,13 @@
-import resolve from 'rollup-plugin-node-resolve';
-import babel from 'rollup-plugin-babel';
-import json from 'rollup-plugin-json';
-import commonJS from 'rollup-plugin-commonjs';
+var resolve = require('rollup-plugin-node-resolve');
+var babel = require('rollup-plugin-babel');
+var json = require('rollup-plugin-json');
+var commonJS = require('rollup-plugin-commonjs');
 
-export default {
-    entry: 'src/index.js',
-    dest: 'dist/iaxios.js',
+var path = require('path')
+
+module.exports = {
+    entry: path.resolve(__dirname, './src/index.js'),
+    dest: path.resolve(__dirname, './dist/iaxios.js'),
     format: 'umd',
     moduleName: 'iaxios',
     sourceMap: true,
