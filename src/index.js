@@ -72,12 +72,10 @@ const featureSender = new Feature('sender', 'sending', function (process) {
 class IAxios {
     constructor(ops) {
         this.id = (Math.random() + "").replace('0.', '');
+        IAxios.map[id] = this;
 
         //创建一个axios实例
         this.axios = axios.create();
-
-        //功能实例
-        this.featuresIns = {};
 
         this.options = {};
         this.setOptions(ops);
@@ -148,7 +146,7 @@ class IAxios {
                     }
 
                     if (ops && ops.options.features && ops.options.features.auth) {
-                        process.iaxios.featuresIns.auth.exec(process).then(data => {
+                        Feature.map.auth.exec(process).then(data => {
                             process.dataMap.push(data);
                             if (data.state === 'resolve') {
                                 next();
@@ -173,7 +171,7 @@ class IAxios {
                         return;
                     }
                     if (ops && ops.options.features && ops.options.features.validator) {
-                        process.iaxios.featuresIns.validator.exec(process).then(data => {
+                        Feature.map.validator.exec(process).then(data => {
                             process.dataMap.push(data);
                             if (data.state === 'resolve') {
                                 next();
@@ -224,18 +222,8 @@ class IAxios {
     }
     setOptions(ops) {
         if (typeof ops === 'object') {
-            this.options = util.extend(true, {}, defaultIAxiosOptions, this.options, ops);
+            util.extend(true, this.options, ops);
             util.extend(true, this.axios.defaults, this.options.axios || {});
-
-            var self = this;
-            Object.keys(this.options.features).forEach(key => {
-                var fe = Feature.map[key];
-                if (fe) {
-                    self.featuresIns[key] = Feature.map[key];
-                } else {
-                    self.log(`[IAxios]不存在名称是 ${key} 的Feature;`);
-                }
-            });
         }
     }
     log(msg) {
@@ -267,6 +255,5 @@ export default {
     create: IAxios.create,
     createRequest: IAxios.createRequest,
     setOptions: IAxios.setOptions,
-    IAxios: IAxios,
     version: version
 }
