@@ -1,6 +1,12 @@
-class Process {
+export default class Process {
     constructor() {
         this.stack = [];
+        this.iaxios = null;
+        this.requestName = '';
+        this.requestArgs = null;
+        this.isCancel = false;
+        this.dataMap = [];
+        this.cancelToken = null;
     }
 
     use(handler) {
@@ -9,9 +15,9 @@ class Process {
     }
 
     next() {
-        var item = this.stack.pop();
+        var item = this.stack.shift();
         if (item) {
-            item(this.next);
+            item(this.next.bind(this));
         }
     }
 }

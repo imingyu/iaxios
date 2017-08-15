@@ -1,50 +1,58 @@
+import { version } from '../package.json';
 import axios from 'axios';
 import Feature from './feature.js';
 import Process from './process.js';
 import * as util from './util.js';
-import { iaxios as defaultIAxiosOptions, request as defaultRequestConfig } from './options.js';
+import defaultIAxiosOptions from './options.js';
+
+var CancelToken = axios.CancelToken;
 
 
-const featureSender = new Feature('sender', 'sending', function (iaxiosIns, requestConfig, requestArgs, cancelTigger) {
-    var options = util.extend(true, {}, this.options, otherOptions || {}, ops || {});
-    var promise = new Promise((resolve, reject) => {
-        var self = this,
-            axios = this.axios,
-            options = util.extend(true, {}, this.options, ops || {}),
-            handlers = options.handlers || {},
-            features = options.features || {},
-            configList = options.requestConfigList,
-            cancelToken = axios.CancelToken.source();
+const featureSender = new Feature('sender', 'sending', function (process) {
+    console.log(process);
+    var options = process.computedOptions.options || {},
+        iaxios = process.iaxios,
+        axios = iaxios.axios,
+        requestName = process.requestName;
+    var handlers = options.handlers || {},
+        features = options.features || {},
+        configList = options.requestConfigList,
+        cancelTokenSource = CancelToken.source();
+    process.cancelToken = cancelTokenSource;
 
-        //获取真实url
-        options.url = url;
-        if (typeof handlers.getUrl === 'function') {
-            var computedUrl = handlers.getUrl(options);
-            if (computedUrl) {
-                options.url = computedUrl + "";
-            }
+    //3.获取请求的真实url：getUrl
+    if (typeof handlers.getUrl === 'function') {
+        var computedUrl = handlers.getUrl(process.computedOptions.requestConfig);
+        if (computedUrl) {
+            options.axios.url = computedUrl + "";
         }
+    }
 
-        //开始发送请求
-        this.axios.request(options).then(res => {
-            if (handlers.checkResult(res)) {
-                resolve(handlers.resolveConvert(res))
-            } else {
-                reject(handlers.rejectConvert(res, null));
-            }
-        }).catch(error => {
-            if (axios.isCancel(error)) {
-                reject(handlers.cancelConvert(null, error));
-            } else {
-                reject(handlers.rejectConvert(null, error));
-            }
-        });
+    featureSender.checker = function (res) {
+        return (process.computedOptions.options.handlers.checkResult || function () { return true })(res);
+    }
 
-        //为外部promise赋值cancel函数，用于取消正在发送的request
-        promise.cancel = function (data) {
-            cancelToken.cancel(data);
+    //4.应用计算后的axios配置信息：axios.request 
+    options.axios.cancelToken = cancelTokenSource.token;
+    var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
+    if (options.axios.method === 'get') {
+        options.axios.params = options.axios.params || {};
+        if (typeof options.axios.params === 'object') {
+            util.extend(true, options.axios.params, requestModel);
+        } else if (typeof options.axios.params === 'string') {
+            options.axios.params += '&' + util.paramsSerializer(requestModel);
         }
-    });
+    } else {
+        options.axios.data = options.axios.data || {};
+        if (typeof options.axios.data === 'object') {
+            util.extend(true, options.axios.data, requestModel);
+        } else if (typeof options.axios.data === 'string') {
+            options.axios.data += '&' + util.stringifyData(requestModel);
+        }
+    }
+
+    //5.开始发送请求
+    return axios.request(options.axios);
 });
 
 
@@ -65,16 +73,14 @@ class IAxios {
     constructor(ops) {
         this.id = (Math.random() + "").replace('0.', '');
 
+        //创建一个axios实例
+        this.axios = axios.create();
+
         //功能实例
         this.featuresIns = {};
 
         this.options = {};
-        this.options(defaultIAxiosOptions);
-        this.options(ops);
-        //this._updateOptions = false;//标志是否调用了this.options(ops)方法，因为有时request还未发出去，但是已经创建好了，这是要在发送前判断下_updateOptions，如果需要更新，就会重新抓取一遍options
-
-        //创建一个axios实例
-        this.axios = axios.create(this.options.axios || {});
+        this.setOptions(ops);
     }
     createRequest(requestName, otherOptions) {
         var iaxiosIns = this;
@@ -82,36 +88,98 @@ class IAxios {
         return function request(model, ops) {
             var requestArgs = Array.from(arguments),
                 process = new Process(),
-
                 computeOptions = () => {
-                    var options = iaxiosIns.computeOptions(),
-                        requestConfig = util(true, {}, options.requestConfigList[requestName]);
+                    var options = util.extend(true, {}, defaultIAxiosOptions, iaxiosIns.options),
+                        requestConfig = options.requestConfigList[requestName];
 
                     if (!requestConfig) return;
 
-                    util.extend(true, options.features, requestConfig.features || {});
-                    delete requestConfig.features;
-                    util.extend(true, options.handlers, requestConfig.handlers || {});
-                    delete requestConfig.handlers;
-                    util.extend(true, options.axios, requestConfig);
+                    var copyRequestConfig = util.extend(true, {}, requestConfig);
+
+                    util.extend(true, options.features, copyRequestConfig.features || {});
+                    delete copyRequestConfig.features;
+                    util.extend(true, options.handlers, copyRequestConfig.handlers || {});
+                    delete copyRequestConfig.handlers;
+                    util.extend(true, options.axios, copyRequestConfig);
+
                     if (otherOptions) util.extend(true, options, otherOptions);
                     if (requestArgs.length > 1 && typeof requestArgs[1] === 'object') {
                         util.extend(true, options, requestArgs[1]);
                     }
+
+                    var checkResult = options.handlers.checkResult,
+                        resolveConvert = options.handlers.resolveConvert,
+                        rejectConvert = options.handlers.rejectConvert;
+
                     return {
                         options: options,
-                        requestConfig: requestConfig
+                        requestConfig: requestConfig,
+                        checkResult: checkResult,
+                        resolveConvert: resolveConvert,
+                        rejectConvert: rejectConvert
                     };
-                };
+                },
+                checkCancel = function (reject) {
+                    if (process.isCancel) {
+                        reject(rejectConvert(process.dataMap));
+                        return true;
+                    }
+                }
             process.iaxios = iaxiosIns;
+            process.requestName = requestName;
+            process.requestArgs = requestArgs;
+            process.isCancel = false;
+            process.dataMap = [];
+            process.cancelToken = null;
 
 
             var promise = new Promise((resolve, reject) => {
+                process.computedOptions = computeOptions();
+
+
+                //1.检查认证：auth
                 process.use(function (next) {
                     var ops = computeOptions();
+                    process.computedOptions = ops;
+
+                    if (process.isCancel) {
+                        reject(ops.rejectConvert(process.dataMap));
+                        return;
+                    }
+
                     if (ops && ops.options.features && ops.options.features.auth) {
-                        self.featuresIns.auth.exec().then(data => {
-                            //if(data.state=='')
+                        process.iaxios.featuresIns.auth.exec(process).then(data => {
+                            process.dataMap.push(data);
+                            if (data.state === 'resolve') {
+                                next();
+                            } else {
+                                if (typeof ops.options.features.auth === 'object' && typeof ops.options.features.auth.onUnAuth === 'function') {
+                                    ops.options.features.auth.onUnAuth(ops.requestConfig, requestArgs);
+                                }
+                                reject(ops.rejectConvert(process.dataMap));
+                            }
+                        });
+                    } else {
+                        next();
+                    }
+                });
+                //2.验证参数：validator
+                process.use(function (next) {
+                    var ops = computeOptions();
+                    process.computedOptions = ops;
+
+                    if (process.isCancel) {
+                        reject(ops.rejectConvert(process.dataMap));
+                        return;
+                    }
+                    if (ops && ops.options.features && ops.options.features.validator) {
+                        process.iaxios.featuresIns.validator.exec(process).then(data => {
+                            process.dataMap.push(data);
+                            if (data.state === 'resolve') {
+                                next();
+                            } else {
+                                reject(ops.rejectConvert(process.dataMap));
+                            }
                         });
                     } else {
                         next();
@@ -119,21 +187,42 @@ class IAxios {
                 });
                 process.use(function (next) {
                     var ops = computeOptions();
-                    if (ops && ops.options.features && ops.options.features.validator) {
-                        self.featuresIns.validator.exec()
-                    } else {
-                        next();
+                    process.computedOptions = ops;
+
+                    if (process.isCancel) {
+                        reject(ops.rejectConvert(process.dataMap));
+                        return;
                     }
+                    featureSender.exec(process).then(data => {
+                        process.dataMap.push(data);
+                        if (data.state === 'resolve') {
+                            resolve(ops.resolveConvert(data));
+                        } else {
+                            reject(ops.rejectConvert(process.dataMap));
+                        }
+                    });
                 });
-                queue.push(featureSender);
+
+                process.next();
             });
             promise.cancel = function (data) {
+                if (process.isCancel) return;
+                process.isCancel = true;
+                var obj = {
+                    stage: 'cancel',
+                    state: 'reject',
+                    data: data
+                };
+                process.dataMap.push(obj);
+                if (process.cancelToken) {
+                    process.cancelToken.cancel();
+                }
             };
 
             return promise;
         }
     }
-    options(ops) {
+    setOptions(ops) {
         if (typeof ops === 'object') {
             this.options = util.extend(true, {}, defaultIAxiosOptions, this.options, ops);
             util.extend(true, this.axios.defaults, this.options.axios || {});
@@ -149,13 +238,9 @@ class IAxios {
             });
         }
     }
-    computeOptions() {
-        var args = Array.from(arguments);
-        return util.extend.apply(null, [true, {}, defaultIAxiosOptions].concat(args));
-    }
     log(msg) {
         if (this.options.features && this.options.features.tip) {
-            (this.options.handlers.logTip || console.warn)(msg);
+            (typeof this.options.features.tip === 'function' ? this.options.features.tip : console.warn)(msg);
         }
     }
 
@@ -165,9 +250,10 @@ class IAxios {
     static createRequest(requestName, otherOptions) {
         return IAxios.map['default'].createRequest(requestName, otherOptions);
     }
-    static options(ops) {
+    static setOptions(ops) {
         if (typeof ops === 'object') {
             util.extend(true, defaultIAxiosOptions, ops);
+            IAxios.map['default'].setOptions(ops);
         }
     }
 }
@@ -180,5 +266,7 @@ IAxios.map['default'] = defaultIAxios;
 export default {
     create: IAxios.create,
     createRequest: IAxios.createRequest,
-    options: IAxios.options
+    setOptions: IAxios.setOptions,
+    IAxios: IAxios,
+    version: version
 }

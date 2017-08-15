@@ -1,3 +1,11 @@
+import Qs from 'qs';
+export var paramsSerializer = obj => {
+    return Qs.stringify(obj, { arrayFormat: 'brackets' });//如何序列化params，params会拼接的url后面
+}
+export var stringifyData = obj => {
+    return Qs.stringify(obj);
+}
+
 export var isPromise = obj => {
     return obj && obj.then && obj.catch;
 }

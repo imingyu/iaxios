@@ -1,28 +1,61 @@
 import * as util from './util.js';
 
 const stages = ['before', 'sending', 'after'];
+
+var check = (feature, checkData, resolve) => {
+    var checkResult = feature.checker(checkData),
+        stage = `${feature.stage}.${feature.name}`;
+    if (util.isPromise(checkResult)) {
+        checkResult.then(result => {
+            resolve({
+                state: result ? 'resolve' : 'reject',
+                stage: stage,
+                data: checkData
+            });
+        }, data => {
+            resolve({
+                state: 'reject',
+                stage: stage,
+                data: checkData
+            });
+        }).catch(error => {
+            resolve({
+                state: 'reject',
+                stage: stage,
+                data: checkData
+            });
+        })
+    } else {
+        resolve({
+            state: checkResult ? 'resolve' : 'reject',
+            stage: stage,
+            data: checkData
+        });
+    }
+}
+
+
 class Feature {
-    constructor(name, stage, handler) {
+    constructor(name, stage, handler, checker) {
         stage = stage || '';
         stage = stage.toLowerCase();
         this.name = name;
         this.stage = stages.indexOf(stage) != -1 ? stage : 'before';
         this.handler = handler;
+        this.checker = typeof checker === 'function' ? checker : function (result) {
+            return !!result;
+        };
     }
 
     exec() {
         var self = this,
             args = Array.from(arguments);
         return new Promise((resolve, reject) => {
-            var result = self.handler.apply(null, args),
+            var result = self.handler.apply(self, args),
                 stage = `${self.stage}.${self.name}`;
             if (util.isPromise(result)) {
                 result.then(data => {
-                    resolve({
-                        state: 'resolve',
-                        stage: stage,
-                        data: data
-                    });
+                    check(self, data, resolve);
                 }).catch(error => {
                     resolve({
                         state: 'reject',
@@ -31,11 +64,7 @@ class Feature {
                     });
                 })
             } else {
-                resolve({
-                    state: 'resolve',
-                    stage: stage,
-                    data: result
-                });
+                check(self, result, resolve);
             }
         });
     }
@@ -44,35 +73,23 @@ class Feature {
 Feature.map = {};
 
 
-var computeOptions = (iaxiosIns, requestName, otherOptions, requestArgs) => {
-    var options = iaxiosIns.computeOptions(),
-        requestConfig = util(true, {}, options.requestConfigList[requestName]);
-
-    if (!requestConfig) return;
-
-    util.extend(true, options.features, requestConfig.features || {});
-    delete requestConfig.features;
-    util.extend(true, options.handlers, requestConfig.handlers || {});
-    delete requestConfig.handlers;
-    util.extend(true, options.axios, requestConfig);
-    if (otherOptions) util.extend(true, options, otherOptions);
-    if (requestArgs.length > 1 && typeof requestArgs[1] === 'object') {
-        util.extend(true, options, requestArgs[1]);
-    }
-    return {
-        options: options,
-        requestConfig: requestConfig
-    };
-}
-
 //认证功能
-Feature.map['auth'] = new Feature('auth', 'before', function (iaxiosIns, ops) {
-    var ops = computeOptions(iaxiosIns, requestName, otherOptions, requestArgs);
-    if (!ops) return;
-    var fs = ops.options.features;
+Feature.map['auth'] = new Feature('auth', 'before', function (process) {
+    var ops = process.computedOptions,
+        fs = ops.options.features;
     //读取配置信息中的features.auth选项，如果是个funciton，则返回其执行结果
     if (fs.auth && typeof fs.auth === 'function') {
-        return fs.auth(ops.requestConfig, requestArgs);
+        return fs.auth(ops.requestConfig, process.requestArgs);
+    } else if (fs.auth && typeof fs.auth === 'object') {
+        fs.auth.enabled = fs.auth.hasOwnProperty('enabled') ? fs.auth.enabled : true;
+        fs.auth.enabled = !!fs.auth.enabled;
+        if (typeof fs.auth.handler === 'function') {
+            return fs.auth.handler(ops.requestConfig, process.requestArgs);
+        } else {
+            return true;
+        }
+    } else {
+        return true;
     }
 });
 
@@ -107,6 +124,8 @@ var validatorFeature = new Feature('validator', 'before', function (iaxiosIns, r
                 Promise.resolve(itemResult);
             }
         }));
+    } else {
+        return true;
     }
 });
 Feature.map['validator'] = validatorFeature;

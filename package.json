@@ -2,9 +2,9 @@
   "name": "iaxios",
   "version": "0.1.0",
   "description": "使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约",
-  "main": "index.js",
+  "main": "dist/iaxios.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "rollup --config rollup.config.js"
   },
   "repository": {
     "type": "git",
@@ -25,5 +25,14 @@
   "dependencies": {
     "axios": "^0.16.2",
     "qs": "^6.5.0"
+  },
+  "devDependencies": {
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-latest": "^6.24.1",
+    "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-commonjs": "^8.1.0",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-resolve": "^3.0.0"
   }
 }

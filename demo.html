@@ -7,22 +7,69 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
+
 <body>
+    <button type="button" id="login">登录</button>
+    <button type="button" id="logout">注销</button>
+    <button type="button" id="send">发送</button>
+
     <script src="./node_modules/axios/dist/axios.js"></script>
+    <script src="./node_modules/qs/dist/qs.js"></script>
+    <script src="./dist/iaxios.js"></script>
     <script>
-        var CancelToken = axios.CancelToken;
-        var source = CancelToken.source();
-        axios.get('http://cnodejs.org/api/v1/topics', {
-            cancelToken: source.token
-        }).catch(function(thrown) {
-            console.log(thrown);
-            if (axios.isCancel(thrown)) {
-                console.log('Request canceled', thrown.message);
-            } else {
-                // handle error
+        document.getElementById('login').addEventListener('click', function () {
+            localStorage.setItem('LoginUser', 'imingyu');
+        }, false)
+        document.getElementById('logout').addEventListener('click', function () {
+            localStorage.removeItem('LoginUser');
+        }, false)
+        document.getElementById('send').addEventListener('click', function () {
+            getList({
+                page: 1,
+                limit: 10
+            }, {
+                    axios: {
+                        params: {
+                            tab: 'share'
+                        }
+                    }
+                }).then(data => {
+                    console.log('请求成功：', data);
+                }, dj => {
+                    console.warn('请求失败：', dj);
+                }).catch(error => {
+                    console.warn('请求失败：', error);
+                })
+        }, false)
+
+
+        iaxios.setOptions({
+            requestConfigList: {
+                'art.list': {
+                    url: 'http://cnodejs.org/api/v1/topics'
+                }
+            },
+            features: {
+                auth: {
+                    handler: function () {
+                        return !!localStorage.getItem('LoginUser')
+                    },
+                    onUnAuth() {
+                        alert('请登录');
+                    }
+                }
+            },
+            handlers: {
+                checkResult(res) {
+                    return res && res.data && res.data.success;
+                },
+                resolveConvert(featureExecResult) {
+                    return featureExecResult.data.data.data;
+                }
             }
         });
-        source.cancel('Operation canceled by the user.');
+
+        var getList = iaxios.createRequest('art.list');
     </script>
 </body>
 
