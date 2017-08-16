@@ -49,13 +49,35 @@
                     url: 'http://cnodejs.org/api/v1/topics'
                 }
             },
+            validators: {
+                'art.list': [
+                    function (config, args) {
+                        var model = args[0];
+                        var result = model.limit > 20;
+                        return {
+                            valid: result,
+                            data: '自定义数据'
+                        }
+                    }
+                ]
+            },
             features: {
                 auth: {
+                    enabled: true,
                     handler: function () {
                         return !!localStorage.getItem('LoginUser')
                     },
                     onUnAuth() {
                         alert('请登录');
+                    }
+                },
+                validator: {
+                    enabled: true,
+                    checkHanlder(result) {
+                        return result.every(item => item && item.result);
+                    },
+                    onUnValid(data) {
+                        console.log('参数验证失败！', data);
                     }
                 }
             },
@@ -70,6 +92,28 @@
         });
 
         var getList = iaxios.createRequest('art.list');
+
+        var getValue = (propExp, obj) => {
+            var fun = new Function('obj', 'var noop = function () { };var result;try{var safeWindow={alert:noop,confirm:noop,prompt:noop};with(obj){result=' + propExp + '}}catch(error){};return result;');
+            return fun(obj);
+        };
+        var user = {
+            name: {
+                first: 'Jan',
+                last: 'Toim'
+            },
+            age: 20,
+            address: [
+                {
+                    address: '美国加州',
+                    phone: '333'
+                },
+                {
+                    address: '美国纽约',
+                    phone: '444'
+                }
+            ]
+        };
     </script>
 </body>
 

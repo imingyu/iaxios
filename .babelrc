@@ -1,11 +1,9 @@
 {
     "presets": [
         [
-            "latest",
+            "es2015",
             {
-                "es2015": {
-                    "modules": false
-                }
+                "modules": false
             }
         ]
     ],

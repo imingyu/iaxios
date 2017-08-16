@@ -14,6 +14,11 @@ export var uniqueID = () => {
     return (Math.random() + "").replace('0.', '');
 }
 
+export var getValue = (propExp, obj) => {
+    var fun = new Function('obj', 'var noop = function () { };var result;try{var safeWindow={alert:noop,confirm:noop,prompt:noop};with(obj){result=' + propExp + '}}catch(error){};return result;');
+    return fun(obj);
+};
+
 // jQuery版extend函数
 export var extend = function () {
     var options, name, src, copy, copyIsArray, clone, target = arguments[0] || {},

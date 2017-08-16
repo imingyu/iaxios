@@ -1,46 +1,45 @@
 {
-    "name": "iaxios",
-    "version": "0.1.0",
-    "description": "使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约",
-    "main": "dist/iaxios.js",
-    "scripts": {
-        "build": "node build/build.js",
-        "dev": "node build/dev.js"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/imingyu/iaxios.git"
-    },
-    "keywords": [
-        "axios",
-        "ajax",
-        "iaxios",
-        "request"
-    ],
-    "author": {
-        "name": "Mingyu Yuan",
-        "email": "mingyuhisoft@163.com",
-        "url": "https://github.com/imingyu"
-    },
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/imingyu/iaxios/issues"
-    },
-    "homepage": "https://github.com/imingyu/iaxios#readme",
-    "dependencies": {
-        "axios": "^0.16.2",
-        "qs": "^6.5.0"
-    },
-    "devDependencies": {
-        "babel-plugin-external-helpers": "^6.22.0",
-        "babel-preset-es2015": "^6.24.1",
-        "babel-preset-latest": "^6.24.1",
-        "chai": "^4.1.1",
-        "rollup": "^0.47.4",
-        "rollup-plugin-babel": "^2.7.1",
-        "rollup-plugin-commonjs": "^8.1.0",
-        "rollup-plugin-json": "^2.3.0",
-        "rollup-plugin-node-resolve": "^3.0.0",
-        "watch": "^1.0.2"
-    }
+  "name": "iaxios",
+  "version": "0.1.0",
+  "description": "使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约",
+  "main": "dist/iaxios.js",
+  "scripts": {
+    "build": "node build/build.js",
+    "dev": "node build/dev.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/imingyu/iaxios.git"
+  },
+  "keywords": [
+    "axios",
+    "ajax",
+    "iaxios",
+    "request"
+  ],
+  "author": {
+    "name": "Mingyu Yuan",
+    "email": "mingyuhisoft@163.com",
+    "url": "https://github.com/imingyu"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/imingyu/iaxios/issues"
+  },
+  "homepage": "https://github.com/imingyu/iaxios#readme",
+  "dependencies": {
+    "axios": "^0.16.2",
+    "qs": "^6.5.0"
+  },
+  "devDependencies": {
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-es2015": "^6.24.1",
+    "chai": "^4.1.1",
+    "rollup": "^0.47.4",
+    "rollup-plugin-babel": "^2.7.1",
+    "rollup-plugin-commonjs": "^8.1.0",
+    "rollup-plugin-json": "^2.3.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "watch": "^1.0.2"
+  }
 }

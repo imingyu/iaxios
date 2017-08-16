@@ -17,10 +17,10 @@ export default {
             return util.stringifyData(data);
         }]
     },
+    validators: {},//验证器列表
     features: { //启用iaxios的哪些功能？
         auth: false,
         jsonp: false, //接口是否以jsonp方式发送
-        tip: true, //当某些配置无法找到，或者功能未启用时，是否在控制台提示相关消息
         validator: false//启用验证器，调用iaxios.createRequest()返回的方法时，先取request配置中的验证器去验证参数，验证通过才会执行下面的逻辑
     },
     handlers: {
