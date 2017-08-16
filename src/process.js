@@ -25,7 +25,6 @@ export default class Process {
 
     run() {
         //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
-        if (!this.iaxios) return;
         var process = this;
         var promise = new Promise((resolve, reject) => {
             var orgFeatures = process.getIAxiosOptionItem('features'),
@@ -66,6 +65,7 @@ export default class Process {
                     });
                 })
             });
+            console.log(`process next start...`);
             process.next();
         });
         promise.cancel = function (data) {
@@ -102,6 +102,8 @@ export default class Process {
         var item = this.stack.shift();
         if (item) {
             item(this.next.bind(this));
+        }else{
+            console.log('process next end.')
         }
     }
 }

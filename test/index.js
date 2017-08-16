@@ -1,59 +1,130 @@
-var iaxios = require('../dist/iaxios.js');
-var assert = require('chai').assert;
+import IAxios from '../src/index.js';
+import chai from 'chai';
+var assert = chai.assert;
+
+var orgOptionis = {
+    requestConfigList: {
+        'user.list': '/user/list',
+        'user.add': {
+            url: '/user/add',
+            method: 'post'
+        },
+        'user.login': {
+            url: '/user/login',
+            method: 'post',
+            features: {
+                auth: false
+            }
+        },
+        'user.update': {
+            url: '/user/update',
+            method: 'put'
+        },
+        'user.remove': {
+            url: '/user/remove',
+            method: 'delete'
+        }
+    },
+    features: {
+        auth: {
+            enabled: true,
+            handler: function () {
+                return true;
+            }
+        },
+        jsonp: false,
+        validator: false
+    }
+}
+IAxios.setOptions(orgOptionis);
 
 var instance = (name) => {
+    var iaxios;
     if (name) {
-        iaxios = iaxios.create();
+        iaxios = IAxios.create();
+        iaxios.id = name;
+    } else {
+        name = 'default';
+        iaxios = IAxios.IAxios.map['default'];
     }
-    describe(`test instance:${name}`, () => {
-        describe('setOptions', () => {
-            it('requestConfigList', () => {
 
+    var UserApi = {};
+    Object.keys(orgOptionis.requestConfigList).forEach(key => {
+        UserApi[key.replace('user.', '')] = iaxios.createRequest(key);
+    });
+
+    describe(`test instance:${name}`, () => {
+        describe('options', () => {
+            describe('getOptionItem', () => {
+                it('getOptionItem.1', () => {
+                    assert.isObject(iaxios.getOptionItem('requestConfigList["user.add"]'));
+                })
+                it('getOptionItem.2', () => {
+                    var api = iaxios.getOptionItem('requestConfigList["user.add"]');
+                    assert.isTrue(api.url === orgOptionis.requestConfigList["user.add"].url);
+                    assert.isTrue(api.method === orgOptionis.requestConfigList["user.add"].method);
+                })
+                it('getOptionItem.3', () => {
+                    var auth = iaxios.getOptionItem('requestConfigList["user.login"].features.auth');
+                    assert.isTrue(auth === false);
+                })
+                it('getOptionItem.4', () => {
+                    var auth = iaxios.getOptionItem('features.auth');
+                    assert.isTrue(auth.enabled);
+                    assert.isTrue(auth.handler === orgOptionis.features.auth.handler);
+                })
+                it('getOptionItem.4', () => {
+                    var item = iaxios.getOptionItem('features.jsonp');
+                    assert.isObject(item);
+                    assert.isTrue(item.enabled === false);
+                })
             })
-            var orgOptionis = {
-                requestConfigList: {}, //request配置元信息集合
-                axios: {
-                    //axios配置
-                    method: 'get',
-                    paramsSerializer: util.paramsSerializer,
-                    headers: {
-                        common: {
-                            'Content-Type': 'application/json'
-                        },
-                        post: {
-                            'Content-Type': 'application/x-www-form-urlencoded'
-                        }
+        })
+
+        describe('auth', () => {
+            var isLogin = false,
+                execHandler = false,
+                execOnUnAuth = false,
+                execGetUrl = false;
+            iaxios.setOptions({
+                features: {
+                    auth: true,
+                    handler() {
+                        execHandler = true;
+                        return isLogin;
                     },
-                    transformRequest: [function (data, headers) {
-                        return util.stringifyData(data);
-                    }]
-                },
-                features: { //启用iaxios的哪些功能？
-                    auth: false,
-                    jsonp: false, //接口是否以jsonp方式发送
-                    tip: true, //当某些配置无法找到，或者功能未启用时，是否在控制台提示相关消息
-                    validator: false//启用验证器，调用iaxios.createRequest()返回的方法时，先取request配置中的验证器去验证参数，验证通过才会执行下面的逻辑
+                    onUnAuth() {
+                        execOnUnAuth = true;
+                    }
                 },
                 handlers: {
-                    //获取请求的真实url
-                    getUrl(requestConfig) {
-                        return requestConfig.url;
-                    },
-                    //检查请求返回的结果，成功请resolve，失败请reject
-                    checkResult(res) {
-                        return res && res.data ? true : false;
-                    },
-                    //格式化请求成功的数据
-                    resolveConvert(res) {
-                        return res.data;
-                    },
-                    //格式化请求失败的数据
-                    rejectConvert(rejectDataMap) {
-                        return rejectDataMap;
+                    getUrl(config) {
+                        execGetUrl = true;
+                        return config.url;
                     }
                 }
-            }
-            iaxios.setOptions(orgOptionis);
+            });
+
+            it('auth.1', (done) => {
+                assert.isTrue(execOnUnAuth === false);
+                assert.isTrue(execHandler === false);
+                UserApi.login({
+                    username: 'imingyu',
+                    password: '123456'
+                }).then(data => {
+                    assert.isTrue(false);
+                    done();
+                }, data => {
+                    assert.isTrue(execHandler);
+                    assert.isTrue(execOnUnAuth);
+                    done();
+                }).catch(error => {
+                    assert.isTrue(false);
+                    done();
+                })
+            })
         })
     });
 }
+
+instance();

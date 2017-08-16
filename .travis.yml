@@ -6,6 +6,7 @@ cache:
     - "node_modules"
 before_install:
   - npm i mocha -g
+  - npm i -g karma-cli
 install:
   - npm install
 before_script:

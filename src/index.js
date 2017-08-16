@@ -34,6 +34,7 @@ class IAxios {
         var iaxiosIns = this;
 
         return function request(model, ops) {
+            console.log('send request...');
             var requestArgs = Array.from(arguments),
                 process = new Process();
             process.iaxios = iaxiosIns;
@@ -72,8 +73,8 @@ class IAxios {
 
         if (vals.length > 0) {
             if (!isGetFeature) {
-                val = vals.find(item => {
-                    return item;
+                val = vals.find(v => {
+                    return typeof v !== 'undefined' && v != null;
                 });
             } else {
                 if (key === 'features') {
@@ -97,7 +98,9 @@ class IAxios {
                 } else {
                     if (key.indexOf('.') === key.lastIndexOf('.')) {
                         if (typeof vals[0] === 'boolean' && vals[0] === false) {
-                            val = false;
+                            val = {
+                                enabled: false
+                            };
                         } else {
                             var arr = [];
                             vals.forEach(item => {

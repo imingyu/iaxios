@@ -379,7 +379,6 @@ var Process = function () {
         key: 'run',
         value: function run() {
             //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
-            if (!this.iaxios) return;
             var process = this;
             var promise = new Promise(function (resolve, reject) {
                 var orgFeatures = process.getIAxiosOptionItem('features'),
@@ -426,6 +425,7 @@ var Process = function () {
                         });
                     });
                 });
+                console.log('process next start...');
                 process.next();
             });
             promise.cancel = function (data) {
@@ -466,6 +466,8 @@ var Process = function () {
             var item = this.stack.shift();
             if (item) {
                 item(this.next.bind(this));
+            } else {
+                console.log('process next end.');
             }
         }
     }]);
@@ -552,6 +554,7 @@ var IAxios = function () {
             var iaxiosIns = this;
 
             return function request(model, ops) {
+                console.log('send request...');
                 var requestArgs = Array.from(arguments),
                     process = new Process();
                 process.iaxios = iaxiosIns;
@@ -599,8 +602,8 @@ var IAxios = function () {
 
             if (vals.length > 0) {
                 if (!isGetFeature) {
-                    val = vals.find(function (item) {
-                        return item;
+                    val = vals.find(function (v) {
+                        return typeof v !== 'undefined' && v != null;
                     });
                 } else {
                     if (key === 'features') {
@@ -624,7 +627,9 @@ var IAxios = function () {
                     } else {
                         if (key.indexOf('.') === key.lastIndexOf('.')) {
                             if (typeof vals[0] === 'boolean' && vals[0] === false) {
-                                val = false;
+                                val = {
+                                    enabled: false
+                                };
                             } else {
                                 var arr = [];
                                 vals.forEach(function (item) {
