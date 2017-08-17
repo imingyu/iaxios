@@ -1,4 +1,9 @@
 # iaxios
+[![Build Status](https://travis-ci.org/imingyu/iaxios.svg?branch=master)](https://travis-ci.org/imingyu/iaxios)
+![image](https://img.shields.io/npm/l/iaxios.svg)
+[![image](https://img.shields.io/npm/v/iaxios.svg)](https://www.npmjs.com/package/iaxios)
+[![image](https://img.shields.io/npm/dt/iaxios.svg)](https://www.npmjs.com/package/iaxios)
+
 使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约
 
 # 核心功能
