@@ -1,12 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
+
 <body>
-    <script src="http://localhost:9876/base/test/index.js"></script>
+
+    <script src="./node_modules/axios/dist/axios.js"></script>
+    <script src="./node_modules/qs/dist/qs.js"></script>
+    <script src="./dist/iaxios.js"></script>
+    <script>
+        new Promise((r, j) => {
+            j(1)
+        }).catch(error => {
+            console.log(`error`, error);
+        })
+
+
+        var orgOptionis = {
+            requestConfigList: {
+                'user.list': '/user/list',
+                'user.add': {
+                    url: '/user/add',
+                    method: 'post'
+                },
+                'user.login': {
+                    url: '/user/login',
+                    method: 'get',
+                    features: {
+                        auth: false
+                    }
+                },
+                'user.update': {
+                    url: '/user/update',
+                    method: 'put'
+                },
+                'user.remove': {
+                    url: '/user/remove',
+                    method: 'delete'
+                }
+            },
+            features: {
+                auth: {
+                    enabled: true,
+                    handler: function () {
+                        return true;
+                    }
+                },
+                jsonp: false,
+                validator: false
+            }
+        }
+        iaxios.setOptions(orgOptionis);
+
+        (function () {
+            var ins = iaxios.create();
+            var UserApi = {};
+            Object.keys(orgOptionis.requestConfigList).forEach(key => {
+                UserApi[key.replace('user.', '')] = ins.createRequest(key);
+            });
+
+            var isLogin = false,
+                execHandler = false,
+                execOnUnAuth = false,
+                execGetUrl = false;
+
+            ins.setOptions({
+                features: {
+                    auth: {
+                        enabled: true,
+                        handler() {
+                            execHandler = true;
+                            return isLogin;
+                        },
+                        onUnAuth() {
+                            execOnUnAuth = true;
+                        }
+                    }
+                },
+                handlers: {
+                    getUrl(config) {
+                        execGetUrl = true;
+                        return config.url;
+                    }
+                }
+            });
+            UserApi.login({
+                username: 'imingyu',
+                password: '123456'
+            }).then(data => {
+                console.log(`1发送成功`, data)
+            }, data => {
+                console.log(`1发送失败`, data)
+            }).catch(error => {
+                console.log(`1发送错误`, error)
+            })
+        })();
+
+        (function () {
+            var ins = iaxios.create();
+            var UserApi = {};
+            Object.keys(orgOptionis.requestConfigList).forEach(key => {
+                UserApi[key.replace('user.', '')] = ins.createRequest(key);
+            });
+
+            var isLogin = false,
+                execHandler = false,
+                execOnUnAuth = false,
+                execGetUrl = false;
+
+            ins.setOptions({
+                features: {
+                    auth: {
+                        enabled: true,
+                        handler() {
+                            execHandler = true;
+                            return isLogin;
+                        },
+                        onUnAuth() {
+                            execOnUnAuth = true;
+                            console.log(`onUnAuthonUnAuthonUnAuthonUnAuth`);
+                        }
+                    }
+                },
+                handlers: {
+                    getUrl(config) {
+                        execGetUrl = true;
+                        return config.url;
+                    }
+                }
+            });
+            UserApi.list({
+                pageSize: 20
+            }).then(data => {
+                console.log(`2发送成功`, data)
+            }, data => {
+                console.log(`2发送失败`, data)
+            }).catch(error => {
+                console.log(`2发送错误`, error)
+            })
+        })();
+
+        /*var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = ins.createRequest(key);
+        });
+
+        var isLogin = false,
+            execHandler = false,
+            execOnUnAuth = false,
+            execGetUrl = false;
+
+        ins.setOptions({
+            features: {
+                auth: {
+                    enabled: true,
+                    handler() {
+                        execHandler = true;
+                        return isLogin;
+                    },
+                    onUnAuth() {
+                        execOnUnAuth = true;
+                    }
+                }
+            },
+            handlers: {
+                getUrl(config) {
+                    console.log('getUrl.........', config)
+                    execGetUrl = true;
+                    return config.url;
+                }
+            }
+        });
+        UserApi.login({
+            username: 'imingyu',
+            password: '123456'
+        }).then(data => {
+            console.log(`发送成功`, data)
+        }, data => {
+            console.log(`发送失败`, data)
+        }).catch(error => {
+            console.log(`发送错误`, error)
+        })*/
+
+
+        /*
+
+        var isLogin = false,
+            execHandler = false,
+            execOnUnAuth = false,
+            execGetUrl = false;
+
+        var ins = iaxios.create({
+            features: {
+                auth: {
+                    enabled: true,
+                    handler() {
+                        execHandler = true;
+                        return isLogin;
+                    },
+                    onUnAuth() {
+                        execOnUnAuth = true;
+                    }
+                }
+            },
+            handlers: {
+                getUrl(config) {
+                    execGetUrl = true;
+                    return config.url;
+                }
+            }
+        });
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = ins.createRequest(key);
+        });
+        UserApi.list({
+            pageSize: 20
+        }, {
+                features: {
+                    auth: false
+                }
+            }).then(data => {
+                console.log('成功', data)
+            }, data => {
+                console.log('失败', data)
+            }).catch(error => {
+                console.log('发生错误', error)
+            })*/
+
+        /*var ins = iaxios.create({
+            features: {
+                auth: {
+                    enabled: true,
+                    handler() {
+                        return isLogin;
+                    }
+                }
+            },
+            handlers: {
+                getUrl(config) {
+                    return config.url;
+                }
+            }
+        });
+
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = ins.createRequest(key);
+        });
+
+        UserApi.login({
+            username: 'imingyu',
+            password: '123456'
+        }).then(data => {
+            console.log('成功', data)
+        }, data => {
+            console.log('失败', data)
+        }).catch(error => {
+            console.log('发生错误', error)
+        })*/
+    </script>
 </body>
+
 </html>

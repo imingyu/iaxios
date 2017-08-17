@@ -4,8 +4,6 @@ import Process from './process.js';
 import * as util from './util.js';
 import defaultIAxiosOptions from './options.js';
 
-var CancelToken = axios.CancelToken;
-
 /**
  * request发送流程：
  * 1.检查认证：auth
@@ -34,7 +32,6 @@ class IAxios {
         var iaxiosIns = this;
 
         return function request(model, ops) {
-            console.log('send request...');
             var requestArgs = Array.from(arguments),
                 process = new Process();
             process.iaxios = iaxiosIns;
@@ -50,17 +47,20 @@ class IAxios {
     }
     setOptions(ops) {
         if (typeof ops === 'object') {
+            util.validOptions(ops);
+            util.standardFeaturesOptions(ops);
             util.extend(true, this.options, ops);
         }
     }
-    getOptionItem(key, ...preOptions) {
+    getOptionItem(key) {
         if (!key) return;
 
-        var vals = [],
-            isGetFeature = key.indexOf('features') == 0;
+        var preOptions = arguments.length > 1 ? Array.from(arguments).splice(1, arguments.length - 1) : [];
+
+        var vals = [];
         if (preOptions.length > 0) {
             preOptions.forEach(item => {
-                if (item) vals.push(util.getValue(key, item));
+                if (item) vals.push(util.getValue(key, util.standardOptions(item)));
             })
         }
         vals.push(util.getValue(key, this.options));
@@ -72,57 +72,42 @@ class IAxios {
         var val;
 
         if (vals.length > 0) {
-            if (!isGetFeature) {
-                val = vals.find(v => {
-                    return typeof v !== 'undefined' && v != null;
-                });
-            } else {
-                if (key === 'features') {
+            if (key === 'features') {
+                if (typeof vals[0] != 'object') {
+                    val = vals[0];
+                } else {
                     val = util.extend.apply(null, [true, {}].concat(vals.reverse()));
                     Object.keys(val).map(v => {
-                        var item = val[v],
-                            vi;
-                        if (typeof item === 'object') {
-                            vi = item;
-                        } else if (typeof item === 'function') {
-                            vi = {
-                                handler: item
-                            };
-                        } else {
-                            vi = {
-                                enabled: item
-                            };
-                        }
-                        val[v] = vi;
+                        val[v] = util.standardAuthOptions(val[v]);
                     });
-                } else {
-                    if (key.indexOf('.') === key.lastIndexOf('.')) {
-                        if (typeof vals[0] === 'boolean' && vals[0] === false) {
-                            val = {
-                                enabled: false
-                            };
-                        } else {
-                            var arr = [];
-                            vals.forEach(item => {
-                                if (typeof item === 'object') {
-                                    arr.push(item)
-                                } else if (typeof item === 'function') {
-                                    arr.push({
-                                        handler: item
-                                    })
-                                } else {
-                                    arr.push({
-                                        enabled: item
-                                    })
-                                }
-                            });
-                            val = util.extend.apply(null, [true, {}].concat(arr.reverse()));
-                        }
+                }
+            } else if (key.indexOf('features.') == 0 && key.lastIndexOf('.') !== key.length - 1) {
+                if (key.indexOf('.') === key.lastIndexOf('.')) {
+                    if (typeof vals[0] === 'boolean' && vals[0] === false) {
+                        val = {
+                            enabled: false
+                        };
                     } else {
-                        val = vals.find(v => {
-                            return typeof v !== 'undefined' && v != null;
+                        var arr = [];
+                        vals.forEach(item => {
+                            arr.push(util.standardAuthOptions(item));
                         });
+                        val = util.extend.apply(null, [true, {}].concat(arr.reverse()));
                     }
+                } else {
+                    val = vals.find(v => {
+                        return typeof v !== 'undefined' && v != null;
+                    });
+                }
+            } else if (key === 'axios') {
+                val = util.extend.apply(null, [true, {}].concat(vals.reverse()));
+            } else {
+                if (vals.some(item => typeof item === 'object')) {
+                    val = util.extend.apply(null, [true, {}].concat(vals.reverse()));
+                } else {
+                    val = vals.find(v => {
+                        return typeof v !== 'undefined' && v != null;
+                    });
                 }
             }
         }
@@ -137,6 +122,8 @@ class IAxios {
     }
     static setOptions(ops) {
         if (typeof ops === 'object') {
+            util.validOptions(ops);
+            util.standardFeaturesOptions(ops);
             util.extend(true, defaultIAxiosOptions, ops);
         }
     }

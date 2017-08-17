@@ -63,8 +63,95 @@ var isPromise = function isPromise(obj) {
 
 
 var getValue = function getValue(propExp, obj) {
-    var fun = new Function('obj', 'var noop = function () { };var result;try{var safeWindow={alert:noop,confirm:noop,prompt:noop};with(obj){result=' + propExp + '}}catch(error){};return result;');
-    return fun(obj);
+    try {
+        var fun = new Function('obj', 'var result;try{result=obj.' + propExp + ';}catch(error){};return result;');
+        return fun(obj);
+    } catch (error) {}
+};
+
+var validOptions = function validOptions(ops) {
+    if ((typeof ops === 'undefined' ? 'undefined' : _typeof(ops)) === 'object') {
+        var msg = function msg(item) {
+            return item + '\u5FC5\u9700\u662Fobject\u7C7B\u578B';
+        };
+        if (ops.hasOwnProperty('features') && _typeof(ops.features) !== 'object') {
+            throw new TypeError(msg('options.features'));
+        }
+        if (ops.hasOwnProperty('requestConfigList') && _typeof(ops.requestConfigList) !== 'object') {
+            throw new TypeError(msg('options.requestConfigList'));
+        }
+        if (ops.hasOwnProperty('axios') && _typeof(ops.axios) !== 'object') {
+            throw new TypeError(msg('options.axios'));
+        }
+        if (ops.hasOwnProperty('validators') && _typeof(ops.validators) !== 'object') {
+            throw new TypeError(msg('options.validators'));
+        }
+        if (ops.hasOwnProperty('handlers') && _typeof(ops.handlers) !== 'object') {
+            throw new TypeError(msg('options.handlers'));
+        }
+    }
+};
+
+var standardAuthOptions = function standardAuthOptions(item) {
+    var vi;
+    if ((typeof item === 'undefined' ? 'undefined' : _typeof(item)) === 'object') {
+        vi = item;
+    } else if (typeof item === 'function') {
+        vi = {
+            handler: item
+        };
+    } else {
+        vi = {
+            enabled: item
+        };
+    }
+    return vi;
+};
+
+var standardFeaturesOptions = function standardFeaturesOptions(ops) {
+    if (ops && _typeof(ops.features) === 'object') {
+        Object.keys(ops.features).forEach(function (key) {
+            var val = ops.features[key];
+            if (typeof val === 'undefined' || val == null) {
+                delete ops.features[key];
+            } else if (typeof val === 'boolean') {
+                ops.features[key] = {
+                    enabled: val
+                };
+            }
+        });
+    }
+    return ops;
+};
+
+var standardRequestConfigItem = function standardRequestConfigItem(cfg) {
+    if (!cfg) return;
+    if ((typeof cfg === 'undefined' ? 'undefined' : _typeof(cfg)) === 'object') {
+        standardFeaturesOptions(cfg);
+        var result = {
+            features: cfg.features,
+            handlers: cfg.handlers || {},
+            requestConfigList: undefined,
+            axios: undefined,
+            validators: undefined
+        },
+            axiosOps = {};
+
+        Object.keys(cfg).forEach(function (item) {
+            if (!result.hasOwnProperty(item)) {
+                axiosOps[item] = cfg[item];
+            }
+        });
+        result.axios = axiosOps;
+        return result;
+    }
+    return cfg;
+};
+
+var standardOptions = function standardOptions(ops) {
+    if (!ops || (typeof ops === 'undefined' ? 'undefined' : _typeof(ops)) !== 'object' || ops === null) return;
+    standardFeaturesOptions(ops);
+    return ops;
 };
 
 // jQuery版extend函数
@@ -161,7 +248,7 @@ var extend = function extend() {
     return target;
 };
 
-var CancelToken$1 = axios.CancelToken;
+var CancelToken = axios.CancelToken;
 
 var stages = ['before', 'sending', 'after'];
 
@@ -223,6 +310,12 @@ var Feature = function () {
                 if (isPromise(result)) {
                     result.then(function (data) {
                         check(self, data, resolve, process);
+                    }, function (data) {
+                        resolve({
+                            state: 'reject',
+                            stage: stage,
+                            data: data
+                        });
                     }).catch(function (error) {
                         resolve({
                             state: 'reject',
@@ -243,16 +336,16 @@ Feature.map = {};
 
 //认证功能
 Feature.map['auth'] = new Feature('auth', 'before', function (process) {
-    var ops = process.getIAxiosOptionItem('features.auth');
-    if (ops && typeof ops.handler === 'function') {
-        return ops.handler(process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']'), process.requestArgs);
+    var authOps = process.featureOptions.auth;
+    if (authOps && typeof authOps.handler === 'function') {
+        return authOps.handler(process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']'), process.requestArgs);
     } else {
         return true;
     }
 }, null, function (process) {
-    var ops = process.getIAxiosOptionItem('features.auth');
-    if (typeof ops.onUnAuth === 'function') {
-        return ops.onUnAuth(process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']'), process.requestArgs);
+    var authOps = process.featureOptions.auth;
+    if (typeof authOps.onUnAuth === 'function') {
+        authOps.onUnAuth(process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']'), process.requestArgs);
     }
 });
 
@@ -260,7 +353,7 @@ Feature.map['auth'] = new Feature('auth', 'before', function (process) {
 var validatorFeature = new Feature('validator', 'before', function (process) {
     var requestConfig = process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']'),
         vsAll = process.getIAxiosOptionItem('validators'),
-        vsConfig = process.getIAxiosOptionItem('features.validator'),
+        vsConfig = process.featureOptions.validator,
         vsRequest = vsAll[process.requestName],
         //request对应的验证器
     execValidators = [];
@@ -287,14 +380,16 @@ var validatorFeature = new Feature('validator', 'before', function (process) {
         }
     }));
 }, function (datas, process) {
-    var checkHanlder = process.getIAxiosOptionItem('features.validator.checkHanlder');
+    var vsConfig = process.featureOptions.validator,
+        checkHanlder = vsConfig.checkHanlder;
     if (typeof checkHanlder === 'function') {
         return checkHanlder(datas);
     } else {
         return true;
     }
 }, function (process) {
-    var onUnValid = process.getIAxiosOptionItem('features.validator.onUnValid');
+    var vsConfig = process.featureOptions.validator,
+        onUnValid = vsConfig.onUnValid;
     if (typeof onUnValid === 'function') {
         var validatorData = process.dataMap.find(function (item) {
             return item.stage === 'before.validator';
@@ -309,16 +404,20 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
     var iaxios = process.iaxios,
         requestName = process.requestName,
         requestConfig = process.getIAxiosOptionItem('requestConfigList[\'' + requestName + '\']'),
-        ajaxOptions = process.getIAxiosOptionItem('axios');
-    process.cancelToken = CancelToken$1.source();
+        ajaxOptions = process.getIAxiosOptionItem('axios'),
+        handlers = process.getIAxiosOptionItem('handlers');
 
     //3.获取请求的真实url：getUrl
-    var getUrl = process.getIAxiosOptionItem('handlers.getUrl');
-    if (typeof getUrl === 'function') {
-        var computedUrl = getUrl(requestConfig);
+    if (typeof handlers.getUrl === 'function') {
+        var computedUrl = handlers.getUrl(requestConfig);
         if (computedUrl) {
             ajaxOptions.url = computedUrl + "";
+        } else {
+            ajaxOptions.url = requestConfig.url;
         }
+    }
+    if (!ajaxOptions.url || String.prototype.trim.call(ajaxOptions.url) === "") {
+        ajaxOptions.url = requestName + "";
     }
 
     senderFeature.checker = function (res) {
@@ -328,7 +427,7 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
     };
 
     //4.应用计算后的axios配置信息：axios.request 
-    ajaxOptions.cancelToken = cancelTokenSource.token;
+    ajaxOptions.cancelToken = CancelToken.source().token;
     var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
     if (ajaxOptions.method === 'get') {
         ajaxOptions.params = ajaxOptions.params || {};
@@ -347,7 +446,7 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
     }
 
     //5.开始发送请求
-    return axios.request(ajaxOptions);
+    return iaxios.axios.request(ajaxOptions);
 });
 Feature.map[senderFeature.name] = senderFeature;
 
@@ -381,8 +480,8 @@ var Process = function () {
             //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
             var process = this;
             var promise = new Promise(function (resolve, reject) {
-                var orgFeatures = process.getIAxiosOptionItem('features'),
-                    keys = Object.keys(orgFeatures).filter(function (name) {
+                var orgFeatures = process.getIAxiosOptionItem('features');
+                var keys = Object.keys(orgFeatures).filter(function (name) {
                     var f = orgFeatures[name];
                     return !!f.enabled; //只抓取已启用的功能
                 });
@@ -391,6 +490,7 @@ var Process = function () {
                 }).filter(function (f) {
                     return !!f;
                 });
+                features.push(Feature.map['sender']);
                 features = features.filter(function (f) {
                     return f.stage === 'before';
                 }).concat(features.filter(function (f) {
@@ -398,6 +498,11 @@ var Process = function () {
                 }), features.filter(function (f) {
                     return f.stage === 'after';
                 }));
+
+                //将功能实例赋值到process上
+                process.featureInstances = features;
+                process.featureOptions = orgFeatures;
+
                 features.forEach(function (featureIns) {
                     process.use(function (next) {
                         if (process.isCancel) {
@@ -414,7 +519,11 @@ var Process = function () {
                                     }
                                     resolve(getConvert('resolveConvert', process)(data.data));
                                 } else {
-                                    next();
+                                    if (process.stack.length > 0) {
+                                        next();
+                                    } else {
+                                        resolve(getConvert('resolveConvert', process)(data.data));
+                                    }
                                 }
                             } else {
                                 if (typeof featureIns.beforeReject === 'function') {
@@ -425,7 +534,6 @@ var Process = function () {
                         });
                     });
                 });
-                console.log('process next start...');
                 process.next();
             });
             promise.cancel = function (data) {
@@ -446,13 +554,16 @@ var Process = function () {
     }, {
         key: 'getIAxiosOptionItem',
         value: function getIAxiosOptionItem(propExp) {
-            return this.iaxios.getOptionItem(propExp, this.requestArgs > 1 ? this.requestArgs[this.requestArgs.length - 1] : undefined, this.otherOptions || undefined);
-        }
-    }, {
-        key: 'sortFeature',
-        value: function sortFeature() {
-            var features = [],
-                opsFeatures = this.iaxios.getOptionItem('features');
+            var configProp = 'requestConfigList[\'' + this.requestName + '\']',
+                sendOptions = this.requestArgs.length > 1 ? this.requestArgs[this.requestArgs.length - 1] : undefined,
+                otherOptions = this.otherOptions;
+            if (configProp == propExp) {
+                return this.iaxios.getOptionItem(propExp, sendOptions, otherOptions);
+            } else {
+                var requestConfig = this.getIAxiosOptionItem('requestConfigList[\'' + this.requestName + '\']'),
+                    standardConfig = standardRequestConfigItem(requestConfig);
+                return this.iaxios.getOptionItem.call(this.iaxios, propExp, sendOptions, otherOptions, (typeof standardConfig === 'undefined' ? 'undefined' : _typeof(standardConfig)) === 'object' ? standardConfig : undefined);
+            }
         }
     }, {
         key: 'use',
@@ -466,8 +577,6 @@ var Process = function () {
             var item = this.stack.shift();
             if (item) {
                 item(this.next.bind(this));
-            } else {
-                console.log('process next end.');
             }
         }
     }]);
@@ -494,10 +603,15 @@ var defaultIAxiosOptions = {
     },
     validators: {}, //验证器列表
     features: { //启用iaxios的哪些功能？
-        auth: false,
-        jsonp: false, //接口是否以jsonp方式发送
-        validator: false //启用验证器，调用iaxios.createRequest()返回的方法时，先取request配置中的验证器去验证参数，验证通过才会执行下面的逻辑
-    },
+        auth: {
+            enabled: false
+        },
+        jsonp: {
+            enabled: false
+        }, //接口是否以jsonp方式发送
+        validator: {
+            enabled: false //启用验证器，调用iaxios.createRequest()返回的方法时，先取request配置中的验证器去验证参数，验证通过才会执行下面的逻辑
+        } },
     handlers: {
         //获取请求的真实url
         getUrl: function getUrl(requestConfig) {
@@ -554,7 +668,6 @@ var IAxios = function () {
             var iaxiosIns = this;
 
             return function request(model, ops) {
-                console.log('send request...');
                 var requestArgs = Array.from(arguments),
                     process = new Process();
                 process.iaxios = iaxiosIns;
@@ -572,6 +685,8 @@ var IAxios = function () {
         key: 'setOptions',
         value: function setOptions(ops) {
             if ((typeof ops === 'undefined' ? 'undefined' : _typeof(ops)) === 'object') {
+                validOptions(ops);
+                standardFeaturesOptions(ops);
                 extend(true, this.options, ops);
             }
         }
@@ -580,16 +695,12 @@ var IAxios = function () {
         value: function getOptionItem(key) {
             if (!key) return;
 
-            var vals = [],
-                isGetFeature = key.indexOf('features') == 0;
+            var preOptions = arguments.length > 1 ? Array.from(arguments).splice(1, arguments.length - 1) : [];
 
-            for (var _len = arguments.length, preOptions = Array(_len > 1 ? _len - 1 : 0), _key = 1; _key < _len; _key++) {
-                preOptions[_key - 1] = arguments[_key];
-            }
-
+            var vals = [];
             if (preOptions.length > 0) {
                 preOptions.forEach(function (item) {
-                    if (item) vals.push(getValue(key, item));
+                    if (item) vals.push(getValue(key, standardOptions(item)));
                 });
             }
             vals.push(getValue(key, this.options));
@@ -601,57 +712,44 @@ var IAxios = function () {
             var val;
 
             if (vals.length > 0) {
-                if (!isGetFeature) {
-                    val = vals.find(function (v) {
-                        return typeof v !== 'undefined' && v != null;
-                    });
-                } else {
-                    if (key === 'features') {
+                if (key === 'features') {
+                    if (_typeof(vals[0]) != 'object') {
+                        val = vals[0];
+                    } else {
                         val = extend.apply(null, [true, {}].concat(vals.reverse()));
                         Object.keys(val).map(function (v) {
-                            var item = val[v],
-                                vi;
-                            if ((typeof item === 'undefined' ? 'undefined' : _typeof(item)) === 'object') {
-                                vi = item;
-                            } else if (typeof item === 'function') {
-                                vi = {
-                                    handler: item
-                                };
-                            } else {
-                                vi = {
-                                    enabled: item
-                                };
-                            }
-                            val[v] = vi;
+                            val[v] = standardAuthOptions(val[v]);
                         });
-                    } else {
-                        if (key.indexOf('.') === key.lastIndexOf('.')) {
-                            if (typeof vals[0] === 'boolean' && vals[0] === false) {
-                                val = {
-                                    enabled: false
-                                };
-                            } else {
-                                var arr = [];
-                                vals.forEach(function (item) {
-                                    if ((typeof item === 'undefined' ? 'undefined' : _typeof(item)) === 'object') {
-                                        arr.push(item);
-                                    } else if (typeof item === 'function') {
-                                        arr.push({
-                                            handler: item
-                                        });
-                                    } else {
-                                        arr.push({
-                                            enabled: item
-                                        });
-                                    }
-                                });
-                                val = extend.apply(null, [true, {}].concat(arr.reverse()));
-                            }
+                    }
+                } else if (key.indexOf('features.') == 0 && key.lastIndexOf('.') !== key.length - 1) {
+                    if (key.indexOf('.') === key.lastIndexOf('.')) {
+                        if (typeof vals[0] === 'boolean' && vals[0] === false) {
+                            val = {
+                                enabled: false
+                            };
                         } else {
-                            val = vals.find(function (v) {
-                                return typeof v !== 'undefined' && v != null;
+                            var arr = [];
+                            vals.forEach(function (item) {
+                                arr.push(standardAuthOptions(item));
                             });
+                            val = extend.apply(null, [true, {}].concat(arr.reverse()));
                         }
+                    } else {
+                        val = vals.find(function (v) {
+                            return typeof v !== 'undefined' && v != null;
+                        });
+                    }
+                } else if (key === 'axios') {
+                    val = extend.apply(null, [true, {}].concat(vals.reverse()));
+                } else {
+                    if (vals.some(function (item) {
+                        return (typeof item === 'undefined' ? 'undefined' : _typeof(item)) === 'object';
+                    })) {
+                        val = extend.apply(null, [true, {}].concat(vals.reverse()));
+                    } else {
+                        val = vals.find(function (v) {
+                            return typeof v !== 'undefined' && v != null;
+                        });
                     }
                 }
             }
@@ -671,6 +769,8 @@ var IAxios = function () {
         key: 'setOptions',
         value: function setOptions(ops) {
             if ((typeof ops === 'undefined' ? 'undefined' : _typeof(ops)) === 'object') {
+                validOptions(ops);
+                standardFeaturesOptions(ops);
                 extend(true, defaultIAxiosOptions, ops);
             }
         }

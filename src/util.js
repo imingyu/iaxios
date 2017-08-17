@@ -15,9 +15,97 @@ export var uniqueID = () => {
 }
 
 export var getValue = (propExp, obj) => {
-    var fun = new Function('obj', 'var noop = function () { };var result;try{var safeWindow={alert:noop,confirm:noop,prompt:noop};with(obj){result=' + propExp + '}}catch(error){};return result;');
-    return fun(obj);
+    try {
+        var fun = new Function('obj', 'var result;try{result=obj.' + propExp + ';}catch(error){};return result;');
+        return fun(obj);
+    } catch (error) {
+    }
 };
+
+export var validOptions = ops => {
+    if (typeof ops === 'object') {
+        var msg = item => {
+            return `${item}必需是object类型`;
+        }
+        if (ops.hasOwnProperty('features') && typeof ops.features !== 'object') {
+            throw new TypeError(msg('options.features'));
+        }
+        if (ops.hasOwnProperty('requestConfigList') && typeof ops.requestConfigList !== 'object') {
+            throw new TypeError(msg('options.requestConfigList'));
+        }
+        if (ops.hasOwnProperty('axios') && typeof ops.axios !== 'object') {
+            throw new TypeError(msg('options.axios'));
+        }
+        if (ops.hasOwnProperty('validators') && typeof ops.validators !== 'object') {
+            throw new TypeError(msg('options.validators'));
+        }
+        if (ops.hasOwnProperty('handlers') && typeof ops.handlers !== 'object') {
+            throw new TypeError(msg('options.handlers'));
+        }
+    }
+}
+
+export var standardAuthOptions = item => {
+    var vi;
+    if (typeof item === 'object') {
+        vi = item;
+    } else if (typeof item === 'function') {
+        vi = {
+            handler: item
+        };
+    } else {
+        vi = {
+            enabled: item
+        };
+    }
+    return vi;
+}
+
+export var standardFeaturesOptions = ops => {
+    if (ops && typeof ops.features === 'object') {
+        Object.keys(ops.features).forEach(key => {
+            var val = ops.features[key];
+            if (typeof val === 'undefined' || val == null) {
+                delete ops.features[key];
+            } else if (typeof val === 'boolean') {
+                ops.features[key] = {
+                    enabled: val
+                }
+            }
+        })
+    }
+    return ops;
+}
+
+export var standardRequestConfigItem = (cfg) => {
+    if (!cfg) return;
+    if (typeof cfg === 'object') {
+        standardFeaturesOptions(cfg);
+        var result = {
+            features: cfg.features,
+            handlers: cfg.handlers || {},
+            requestConfigList: undefined,
+            axios: undefined,
+            validators: undefined
+        },
+            axiosOps = {};
+
+        Object.keys(cfg).forEach(item => {
+            if (!result.hasOwnProperty(item)) {
+                axiosOps[item] = cfg[item];
+            }
+        });
+        result.axios = axiosOps;
+        return result;
+    }
+    return cfg;
+}
+
+export var standardOptions = (ops) => {
+    if (!ops || typeof ops !== 'object' || ops === null) return;
+    standardFeaturesOptions(ops);
+    return ops;
+}
 
 // jQuery版extend函数
 export var extend = function () {
