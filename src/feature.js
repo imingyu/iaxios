@@ -1,8 +1,6 @@
 import axios from 'axios';
 import * as util from './util.js';
 
-var CancelToken = axios.CancelToken;
-
 const stages = ['before', 'sending', 'after'];
 
 var check = (feature, checkData, resolve, process) => {
@@ -12,12 +10,6 @@ var check = (feature, checkData, resolve, process) => {
         checkResult.then(result => {
             resolve({
                 state: result ? 'resolve' : 'reject',
-                stage: stage,
-                data: checkData
-            });
-        }, data => {
-            resolve({
-                state: 'reject',
                 stage: stage,
                 data: checkData
             });
@@ -60,13 +52,10 @@ class Feature {
             if (util.isPromise(result)) {
                 result.then(data => {
                     check(self, data, resolve, process);
-                }, data => {
-                    resolve({
-                        state: 'reject',
-                        stage: stage,
-                        data: data
-                    });
                 }).catch(error => {
+                    if (axios.isCancel(error)) {
+                        stage = "cancel";
+                    }
                     resolve({
                         state: 'reject',
                         stage: stage,
@@ -171,7 +160,8 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
     }
 
     //4.应用计算后的axios配置信息：axios.request 
-    ajaxOptions.cancelToken = CancelToken.source().token;
+    var cancelTokenSource = axios.CancelToken.source();
+    ajaxOptions.cancelToken = cancelTokenSource.token;
     var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
     if (ajaxOptions.method === 'get') {
         ajaxOptions.params = ajaxOptions.params || {};
@@ -188,6 +178,7 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
             ajaxOptions.data += '&' + util.stringifyData(requestModel);
         }
     }
+    process.cancelToken = cancelTokenSource;
 
     //5.开始发送请求
     return iaxios.axios.request(ajaxOptions);

@@ -14,13 +14,6 @@
     <script src="./node_modules/qs/dist/qs.js"></script>
     <script src="./dist/iaxios.js"></script>
     <script>
-        new Promise((r, j) => {
-            j(1)
-        }).catch(error => {
-            console.log(`error`, error);
-        })
-
-
         var orgOptionis = {
             requestConfigList: {
                 'user.list': '/user/list',
@@ -42,6 +35,10 @@
                 'user.remove': {
                     url: '/user/remove',
                     method: 'delete'
+                },
+                'user.cancel': {
+                    url: 'http://localhost:7369/home/model',
+                    method: 'get'
                 }
             },
             features: {
@@ -57,7 +54,33 @@
         }
         iaxios.setOptions(orgOptionis);
 
-        (function () {
+        var ins = iaxios.create();
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = ins.createRequest(key);
+        });
+
+        ins.setOptions({
+            features: {
+                auth: false
+            }
+        });
+        var p2 = UserApi.cancel({
+            username: 'imingyu',
+            password: '123456'
+        }).then(data => {
+            console.log(`resolve`, data);
+        }, data => {
+            console.log(`reject`, data);
+        }).catch(error => {
+            console.log(`error`, error);
+        });
+
+        setTimeout(() => {
+            p2.cancel();
+        }, 2 * 1000);
+
+        /*(function () {
             var ins = iaxios.create();
             var UserApi = {};
             Object.keys(orgOptionis.requestConfigList).forEach(key => {
@@ -144,7 +167,7 @@
                 console.log(`2发送错误`, error)
             })
         })();
-
+*/
         /*var UserApi = {};
         Object.keys(orgOptionis.requestConfigList).forEach(key => {
             UserApi[key.replace('user.', '')] = ins.createRequest(key);

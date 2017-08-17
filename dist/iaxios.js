@@ -248,8 +248,6 @@ var extend = function extend() {
     return target;
 };
 
-var CancelToken = axios.CancelToken;
-
 var stages = ['before', 'sending', 'after'];
 
 var check = function check(feature, checkData, resolve, process) {
@@ -259,12 +257,6 @@ var check = function check(feature, checkData, resolve, process) {
         checkResult.then(function (result) {
             resolve({
                 state: result ? 'resolve' : 'reject',
-                stage: stage,
-                data: checkData
-            });
-        }, function (data) {
-            resolve({
-                state: 'reject',
                 stage: stage,
                 data: checkData
             });
@@ -310,13 +302,10 @@ var Feature = function () {
                 if (isPromise(result)) {
                     result.then(function (data) {
                         check(self, data, resolve, process);
-                    }, function (data) {
-                        resolve({
-                            state: 'reject',
-                            stage: stage,
-                            data: data
-                        });
                     }).catch(function (error) {
+                        if (axios.isCancel(error)) {
+                            stage = "cancel";
+                        }
                         resolve({
                             state: 'reject',
                             stage: stage,
@@ -427,7 +416,8 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
     };
 
     //4.应用计算后的axios配置信息：axios.request 
-    ajaxOptions.cancelToken = CancelToken.source().token;
+    var cancelTokenSource = axios.CancelToken.source();
+    ajaxOptions.cancelToken = cancelTokenSource.token;
     var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
     if (ajaxOptions.method === 'get') {
         ajaxOptions.params = ajaxOptions.params || {};
@@ -444,6 +434,7 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
             ajaxOptions.data += '&' + stringifyData(requestModel);
         }
     }
+    process.cancelToken = cancelTokenSource;
 
     //5.开始发送请求
     return iaxios.axios.request(ajaxOptions);
@@ -479,7 +470,23 @@ var Process = function () {
         value: function run() {
             //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
             var process = this;
-            var promise = new Promise(function (resolve, reject) {
+
+            function CancelPromise(executor) {
+                var p = new Promise(function (resolve, reject) {
+                    // before
+                    return executor(resolve, reject);
+                });
+                // after
+                p.__proto__ = CancelPromise.prototype;
+                return p;
+            }
+            CancelPromise.__proto__ = Promise;
+            CancelPromise.prototype.__proto__ = Promise.prototype;
+            CancelPromise.prototype.cancel = function (data) {
+                return process.cancel(data);
+            };
+
+            var promise = new CancelPromise(function (resolve, reject) {
                 var orgFeatures = process.getIAxiosOptionItem('features');
                 var keys = Object.keys(orgFeatures).filter(function (name) {
                     var f = orgFeatures[name];
@@ -536,20 +543,16 @@ var Process = function () {
                 });
                 process.next();
             });
-            promise.cancel = function (data) {
-                if (process.isCancel) return;
-                process.isCancel = true;
-                var obj = {
-                    stage: 'cancel',
-                    state: 'reject',
-                    data: data
-                };
-                process.dataMap.push(obj);
-                if (process.cancelToken) {
-                    process.cancelToken.cancel();
-                }
-            };
             return promise;
+        }
+    }, {
+        key: 'cancel',
+        value: function cancel(data) {
+            if (this.isCancel) return;
+            this.isCancel = true;
+            if (this.cancelToken) {
+                this.cancelToken.cancel(data);
+            }
         }
     }, {
         key: 'getIAxiosOptionItem',

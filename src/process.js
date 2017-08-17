@@ -1,6 +1,8 @@
 import Feature from './feature.js';
 import * as util from './util.js';
 
+
+
 var defaultConvert = data => {
     return data;
 }
@@ -26,7 +28,24 @@ export default class Process {
     run() {
         //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
         var process = this;
-        var promise = new Promise((resolve, reject) => {
+
+        function CancelPromise(executor) {
+            var p = new Promise(function (resolve, reject) {
+                // before
+                return executor(resolve, reject);
+            });
+            // after
+            p.__proto__ = CancelPromise.prototype;
+            return p;
+        }
+        CancelPromise.__proto__ = Promise;
+        CancelPromise.prototype.__proto__ = Promise.prototype;
+        CancelPromise.prototype.cancel = function (data) {
+            return process.cancel(data);
+        }
+
+
+        var promise = new CancelPromise((resolve, reject) => {
             var orgFeatures = process.getIAxiosOptionItem('features');
             var keys = Object.keys(orgFeatures).filter(name => {
                 var f = orgFeatures[name];
@@ -78,20 +97,15 @@ export default class Process {
             });
             process.next();
         });
-        promise.cancel = function (data) {
-            if (process.isCancel) return;
-            process.isCancel = true;
-            var obj = {
-                stage: 'cancel',
-                state: 'reject',
-                data: data
-            };
-            process.dataMap.push(obj);
-            if (process.cancelToken) {
-                process.cancelToken.cancel();
-            }
-        };
         return promise;
+    }
+
+    cancel(data) {
+        if (this.isCancel) return;
+        this.isCancel = true;
+        if (this.cancelToken) {
+            this.cancelToken.cancel(data);
+        }
     }
 
     getIAxiosOptionItem(propExp) {
