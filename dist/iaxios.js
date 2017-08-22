@@ -7,7 +7,7 @@
 axios = axios && axios.hasOwnProperty('default') ? axios['default'] : axios;
 Qs = Qs && Qs.hasOwnProperty('default') ? Qs['default'] : Qs;
 
-var version = "0.1.0";
+var version = "0.1.1";
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
@@ -513,7 +513,7 @@ var Process = function () {
                 features.forEach(function (featureIns) {
                     process.use(function (next) {
                         if (process.isCancel) {
-                            reject(getConvert('rejectConvert', process)(process.dataMap));
+                            reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']')));
                             return;
                         }
 
@@ -524,19 +524,19 @@ var Process = function () {
                                     if (typeof featureIns.breforeResolve === 'function') {
                                         featureIns.breforeResolve(process);
                                     }
-                                    resolve(getConvert('resolveConvert', process)(data.data));
+                                    resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']')));
                                 } else {
                                     if (process.stack.length > 0) {
                                         next();
                                     } else {
-                                        resolve(getConvert('resolveConvert', process)(data.data));
+                                        resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']')));
                                     }
                                 }
                             } else {
                                 if (typeof featureIns.beforeReject === 'function') {
                                     featureIns.beforeReject(process);
                                 }
-                                reject(getConvert('rejectConvert', process)(process.dataMap));
+                                reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem('requestConfigList[\'' + process.requestName + '\']')));
                             }
                         });
                     });
@@ -563,7 +563,7 @@ var Process = function () {
             if (configProp == propExp) {
                 return this.iaxios.getOptionItem(propExp, sendOptions, otherOptions);
             } else {
-                var requestConfig = this.getIAxiosOptionItem('requestConfigList[\'' + this.requestName + '\']'),
+                var requestConfig = this.getIAxiosOptionItem(configProp),
                     standardConfig = standardRequestConfigItem(requestConfig);
                 return this.iaxios.getOptionItem.call(this.iaxios, propExp, sendOptions, otherOptions, (typeof standardConfig === 'undefined' ? 'undefined' : _typeof(standardConfig)) === 'object' ? standardConfig : undefined);
             }
@@ -622,17 +622,17 @@ var defaultIAxiosOptions = {
         },
 
         //检查请求返回的结果，成功请resolve，失败请reject
-        checkResult: function checkResult(res) {
+        checkResult: function checkResult(res, requestConfig) {
             return res && res.data ? true : false;
         },
 
         //格式化请求成功的数据
-        resolveConvert: function resolveConvert(res) {
+        resolveConvert: function resolveConvert(res, requestConfig) {
             return res.data;
         },
 
         //格式化请求失败的数据
-        rejectConvert: function rejectConvert(rejectDataMap) {
+        rejectConvert: function rejectConvert(rejectDataMap, requestConfig) {
             return rejectDataMap;
         }
     }
