@@ -35,15 +35,15 @@ export default {
             return requestConfig.url;
         },
         //检查请求返回的结果，成功请resolve，失败请reject
-        checkResult(res) {
+        checkResult(res, requestConfig) {
             return res && res.data ? true : false;
         },
         //格式化请求成功的数据
-        resolveConvert(res) {
+        resolveConvert(res, requestConfig) {
             return res.data;
         },
         //格式化请求失败的数据
-        rejectConvert(rejectDataMap) {
+        rejectConvert(rejectDataMap, requestConfig) {
             return rejectDataMap;
         }
     }

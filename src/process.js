@@ -67,7 +67,7 @@ export default class Process {
             features.forEach(featureIns => {
                 process.use(function (next) {
                     if (process.isCancel) {
-                        reject(getConvert('rejectConvert', process)(process.dataMap));
+                        reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
                         return;
                     }
 
@@ -78,19 +78,19 @@ export default class Process {
                                 if (typeof featureIns.breforeResolve === 'function') {
                                     featureIns.breforeResolve(process);
                                 }
-                                resolve(getConvert('resolveConvert', process)(data.data));
+                                resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
                             } else {
                                 if (process.stack.length > 0) {
                                     next();
                                 } else {
-                                    resolve(getConvert('resolveConvert', process)(data.data));
+                                    resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
                                 }
                             }
                         } else {
                             if (typeof featureIns.beforeReject === 'function') {
                                 featureIns.beforeReject(process);
                             }
-                            reject(getConvert('rejectConvert', process)(process.dataMap));
+                            reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
                         }
                     });
                 })
@@ -115,7 +115,7 @@ export default class Process {
         if (configProp == propExp) {
             return this.iaxios.getOptionItem(propExp, sendOptions, otherOptions);
         } else {
-            var requestConfig = this.getIAxiosOptionItem(`requestConfigList['${this.requestName}']`),
+            var requestConfig = this.getIAxiosOptionItem(configProp),
                 standardConfig = util.standardRequestConfigItem(requestConfig);
             return this.iaxios.getOptionItem.call(this.iaxios, propExp, sendOptions, otherOptions, typeof standardConfig === 'object' ? standardConfig : undefined);
         }
