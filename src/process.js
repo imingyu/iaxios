@@ -9,7 +9,7 @@ var defaultConvert = data => {
 
 var getConvert = (name, process) => {
     var convert = process.getIAxiosOptionItem('handlers.' + name);
-    convert = typeof convert === 'function' ? defaultConvert : convert;
+    convert = typeof convert === 'function' ? convert : defaultConvert;
     return convert;
 }
 

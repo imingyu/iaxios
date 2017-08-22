@@ -7,7 +7,7 @@
 axios = axios && axios.hasOwnProperty('default') ? axios['default'] : axios;
 Qs = Qs && Qs.hasOwnProperty('default') ? Qs['default'] : Qs;
 
-var version = "0.1.1";
+var version = "0.1.2";
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
@@ -447,7 +447,7 @@ var defaultConvert = function defaultConvert(data) {
 
 var getConvert = function getConvert(name, process) {
     var convert = process.getIAxiosOptionItem('handlers.' + name);
-    convert = typeof convert === 'function' ? defaultConvert : convert;
+    convert = typeof convert === 'function' ? convert : defaultConvert;
     return convert;
 };
 
