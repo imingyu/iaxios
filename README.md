@@ -204,7 +204,7 @@ setTimeout(()=>{
 
 
 # 更新日志
-## v0.1.1
+## v0.1.2
 - 为`handlers`的相关`convert`方法添加第二个参数`requestConfig`
 - 更新文档：添加options注释
 
