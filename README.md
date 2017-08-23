@@ -17,6 +17,12 @@
 - 可注册插件（暂未开放）
 - 取消发送请求
 
+# 待完善/添加的功能
+- 重构options的获取机制，应该规定在执行`createRequest()`返回的`request`时就已确定，并将这个options向下传递，每个`feature`或回调都能修改
+- 更方便的区分`request error`，`checkResult reject`，`feature reject`
+- 传给回调函数的参数丰富些
+- 向外暴露类似生命周期的钩子函数
+
 # 安装
 ```bash
 npm i iaxios -S
