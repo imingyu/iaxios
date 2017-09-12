@@ -11,7 +11,7 @@ export var isPromise = obj => {
 }
 
 export var uniqueID = () => {
-    return (Math.random() + "").replace('0.', '');
+    return (Math.random() + '').replace('0.', '');
 }
 
 export var getValue = (propExp, obj) => {
@@ -82,12 +82,12 @@ export var standardRequestConfigItem = (cfg) => {
     if (typeof cfg === 'object') {
         standardFeaturesOptions(cfg);
         var result = {
-            features: cfg.features,
-            handlers: cfg.handlers || {},
-            requestConfigList: undefined,
-            axios: undefined,
-            validators: undefined
-        },
+                features: cfg.features,
+                handlers: cfg.handlers || {},
+                requestConfigList: undefined,
+                axios: undefined,
+                validators: undefined
+            },
             axiosOps = {};
 
         Object.keys(cfg).forEach(item => {

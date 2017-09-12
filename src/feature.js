@@ -6,6 +6,9 @@ const stages = ['before', 'sending', 'after'];
 var check = (feature, checkData, resolve, process) => {
     var checkResult = feature.checker(checkData, process),
         stage = `${feature.stage}.${feature.name}`;
+    if (typeof checkResult === 'undefined') {
+        console.log(process);
+    }
     if (util.isPromise(checkResult)) {
         checkResult.then(result => {
             resolve({
@@ -13,7 +16,7 @@ var check = (feature, checkData, resolve, process) => {
                 stage: stage,
                 data: checkData
             });
-        }).catch(error => {
+        }).catch(() => {
             resolve({
                 state: 'reject',
                 stage: stage,
@@ -28,7 +31,6 @@ var check = (feature, checkData, resolve, process) => {
         });
     }
 }
-
 
 class Feature {
     constructor(name, stage, handler, checker, beforeReject) {
@@ -54,7 +56,7 @@ class Feature {
                     check(self, data, resolve, process);
                 }).catch(error => {
                     if (axios.isCancel(error)) {
-                        stage = "cancel";
+                        stage = 'cancel';
                     }
                     resolve({
                         state: 'reject',
@@ -71,28 +73,27 @@ class Feature {
 
 Feature.map = {};
 
-
 //认证功能
 Feature.map['auth'] = new Feature('auth', 'before', function (process) {
     var authOps = process.featureOptions.auth;
     if (authOps && typeof authOps.handler === 'function') {
-        return authOps.handler(process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`), process.requestArgs);
+        return authOps.handler(process.requestItemConfig, process.requestArgs);
     } else {
         return true;
     }
 }, null, function (process) {
     var authOps = process.featureOptions.auth;
     if (typeof authOps.onUnAuth === 'function') {
-        authOps.onUnAuth(process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`), process.requestArgs);
+        authOps.onUnAuth(process.requestItemConfig, process.requestArgs);
     }
 });
 
 //validator功能
 var validatorFeature = new Feature('validator', 'before', function (process) {
-    var requestConfig = process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`),
-        vsAll = process.getIAxiosOptionItem('validators'),
+    var requestConfig = process.requestItemConfig,
+        vsAll = process.computeOptions.validators || {},
         vsConfig = process.featureOptions.validator,
-        vsRequest = vsAll[process.requestName],//request对应的验证器
+        vsRequest = vsAll[process.requestName], //request对应的验证器
         execValidators = [];
 
     if (typeof vsRequest === 'function') {
@@ -138,32 +139,28 @@ Feature.map[validatorFeature.name] = validatorFeature;
 const senderFeature = new Feature('sender', 'sending', function (process) {
     var iaxios = process.iaxios,
         requestName = process.requestName,
-        requestConfig = process.getIAxiosOptionItem(`requestConfigList['${requestName}']`),
-        ajaxOptions = process.getIAxiosOptionItem('axios'),
-        handlers = process.getIAxiosOptionItem(`handlers`);
+        requestConfig = process.requestItemConfig,
+        ajaxOptions = process.computeOptions.axios,
+        handlers = process.computeOptions.handlers;
 
     //3.获取请求的真实url：getUrl
     if (typeof handlers.getUrl === 'function') {
         var computedUrl = handlers.getUrl(requestConfig);
         if (computedUrl) {
-            ajaxOptions.url = computedUrl + "";
+            ajaxOptions.url = computedUrl + '';
         } else {
             ajaxOptions.url = requestConfig.url;
         }
     }
-    if (!ajaxOptions.url || String.prototype.trim.call(ajaxOptions.url) === "") {
-        ajaxOptions.url = requestName + "";
+    if (!ajaxOptions.url || String.prototype.trim.call(ajaxOptions.url) === '') {
+        ajaxOptions.url = requestName + '';
     }
 
-    senderFeature.checker = function (res) {
-        return (process.getIAxiosOptionItem('handlers.checkResult') || function () { return true })(res);
-    }
-
-    //4.应用计算后的axios配置信息：axios.request 
+    //4.应用计算后的axios配置信息：axios.request
     var cancelTokenSource = axios.CancelToken.source();
     ajaxOptions.cancelToken = cancelTokenSource.token;
     var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
-    if (ajaxOptions.method === 'get') {
+    if ((ajaxOptions.method + '').toLowerCase() === 'get') {
         ajaxOptions.params = ajaxOptions.params || {};
         if (typeof ajaxOptions.params === 'object') {
             util.extend(true, ajaxOptions.params, requestModel);
@@ -182,6 +179,10 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
 
     //5.开始发送请求
     return iaxios.axios.request(ajaxOptions);
+}, function (res, process) {
+    var handlerCheckResult = process.computeOptions.handlers.checkResult;
+    var result = (handlerCheckResult || function () { return true })(res);
+    return result;
 });
 Feature.map[senderFeature.name] = senderFeature;
 

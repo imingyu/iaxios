@@ -38,8 +38,6 @@ var orgOptionis = {
 IAxios.setOptions(orgOptionis);
 
 
-
-
 describe('options', () => {
     describe('getOptionItem', () => {
         var iaxios = IAxios.create();
@@ -48,85 +46,85 @@ describe('options', () => {
             features2: '3'
         })
         it('getOptionItem.1', () => {
-            assert.isObject(iaxios.getOptionItem('requestConfigList["user.add"]'));
+            assert.isObject(iaxios.options.requestConfigList["user.add"]);
         })
         it('getOptionItem.2', () => {
-            var api = iaxios.getOptionItem('requestConfigList["user.add"]');
+            var api = iaxios.options.requestConfigList["user.add"];
             assert.isTrue(api.url === orgOptionis.requestConfigList["user.add"].url);
             assert.isTrue(api.method === orgOptionis.requestConfigList["user.add"].method);
         })
-        it('getOptionItem.3', () => {
-            var auth = iaxios.getOptionItem('requestConfigList["user.login"].features.auth');
-            assert.isTrue(auth === false);
-        })
-        it('getOptionItem.4', () => {
-            var auth = iaxios.getOptionItem('features.auth');
-            assert.isTrue(auth.enabled);
-            assert.isTrue(auth.handler === orgOptionis.features.auth.handler);
-        })
-        it('getOptionItem.4', () => {
-            var item = iaxios.getOptionItem('features.jsonp');
-            assert.isObject(item);
-            assert.isTrue(item.enabled === false);
-        })
-        it('getOptionItem.5', () => {
-            var item = iaxios.getOptionItem('other1');
-            assert.isTrue(item === '1');
-        })
-        it('getOptionItem.6', () => {
-            var item = iaxios.getOptionItem('features2');
-            assert.isTrue(item === '3');
-        })
-        it('getOptionItem.7', () => {
-            var item = iaxios.getOptionItem('features.');
-            assert.isTrue(typeof item === 'undefined');
-        })
-        it('getOptionItem.8', () => {
-            var item = iaxios.getOptionItem('requestConfigList.');
-            assert.isTrue(typeof item === 'undefined');
-        })
-        it('getOptionItem.9', () => {
-            var ins = IAxios.create();
-            try {
-                ins.setOptions({
-                    features: 123
-                })
-            } catch (error) {
-                assert.isTrue(true);
-            }
+        // it('getOptionItem.3', () => {
+        //     var auth = iaxios.getOptionItem('requestConfigList["user.login"].features.auth');
+        //     assert.isTrue(auth === false);
+        // })
+        // it('getOptionItem.4', () => {
+        //     var auth = iaxios.getOptionItem('features.auth');
+        //     assert.isTrue(auth.enabled);
+        //     assert.isTrue(auth.handler === orgOptionis.features.auth.handler);
+        // })
+        // it('getOptionItem.4', () => {
+        //     var item = iaxios.getOptionItem('features.jsonp');
+        //     assert.isObject(item);
+        //     assert.isTrue(item.enabled === false);
+        // })
+        // it('getOptionItem.5', () => {
+        //     var item = iaxios.getOptionItem('other1');
+        //     assert.isTrue(item === '1');
+        // })
+        // it('getOptionItem.6', () => {
+        //     var item = iaxios.getOptionItem('features2');
+        //     assert.isTrue(item === '3');
+        // })
+        // it('getOptionItem.7', () => {
+        //     var item = iaxios.getOptionItem('features.');
+        //     assert.isTrue(typeof item === 'undefined');
+        // })
+        // it('getOptionItem.8', () => {
+        //     var item = iaxios.getOptionItem('requestConfigList.');
+        //     assert.isTrue(typeof item === 'undefined');
+        // })
+        // it('getOptionItem.9', () => {
+        //     var ins = IAxios.create();
+        //     try {
+        //         ins.setOptions({
+        //             features: 123
+        //         })
+        //     } catch (error) {
+        //         assert.isTrue(true);
+        //     }
 
-            var item = ins.getOptionItem('features.auth.enabled');
-            assert.isTrue(item);
-        })
-        it('getOptionItem.10', () => {
-            var ins = iaxios;
-            orgOptionis.features.auth.enabled = false;
-            var item = ins.getOptionItem('features.auth.enabled');
-            assert.isTrue(item);
+        //     var item = ins.getOptionItem('features.auth.enabled');
+        //     assert.isTrue(item);
+        // })
+        // it('getOptionItem.10', () => {
+        //     var ins = iaxios;
+        //     orgOptionis.features.auth.enabled = false;
+        //     var item = ins.getOptionItem('features.auth.enabled');
+        //     assert.isTrue(item);
 
-            item = ins.getOptionItem('features.auth.handler');
-            assert.isTrue(item === orgOptionis.features.auth.handler);
+        //     item = ins.getOptionItem('features.auth.handler');
+        //     assert.isTrue(item === orgOptionis.features.auth.handler);
 
-            iaxios.setOptions({
-                features: {
-                    auth: {
-                        enabled: false
-                    }
-                }
-            })
-            item = ins.getOptionItem('features.auth.enabled');
-            assert.isTrue(item === false);
-        })
-        it('getOptionItem.11', () => {
-            iaxios.setOptions({
-                lk: 1,
-                features: {
-                    auth: false
-                }
-            })
-            item = iaxios.getOptionItem('features.auth.enabled');
-            assert.isTrue(item === false);
-        })
+        //     iaxios.setOptions({
+        //         features: {
+        //             auth: {
+        //                 enabled: false
+        //             }
+        //         }
+        //     })
+        //     item = ins.getOptionItem('features.auth.enabled');
+        //     assert.isTrue(item === false);
+        // })
+        // it('getOptionItem.11', () => {
+        //     iaxios.setOptions({
+        //         lk: 1,
+        //         features: {
+        //             auth: false
+        //         }
+        //     })
+        //     item = iaxios.getOptionItem('features.auth.enabled');
+        //     assert.isTrue(item === false);
+        // })
     })
 })
 

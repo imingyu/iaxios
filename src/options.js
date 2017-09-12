@@ -17,7 +17,7 @@ export default {
             return util.stringifyData(data);
         }]
     },
-    validators: {},//验证器列表
+    validators: {}, //验证器列表
     features: { //启用iaxios的哪些功能？
         auth: {
             enabled: false

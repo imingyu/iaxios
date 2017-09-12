@@ -18,7 +18,6 @@
 - 取消发送请求
 
 # 待完善/添加的功能
-- 重构options的获取机制，应该规定在执行`createRequest()`返回的`request`时就已确定，并将这个options向下传递，每个`feature`或回调都能修改
 - 更方便的区分`request error`，`checkResult reject`，`feature reject`
 - 传给回调函数的参数丰富些
 - 向外暴露类似生命周期的钩子函数
@@ -118,9 +117,8 @@ setTimeout(()=>{
 ```
 
 # API
-
 ## createRequest (requestName, otherOptions)
-- 在`options.requestConfigList`中查找属性名为`requestName`的配置信息，与`iaxios`的`defaultOptions`、`otherOptions`合并，并根据合并后的配置信息创建并`返回一个函数`，这个函数用于发送请求；
+- 创建并`返回一个函数`，这个函数用于发送请求；
 - 返回的函数API及描述：
     - 结构：`fun(data, sendOptions)`
     - 发送前按照优先级合并配置（`mergeOptions`）：`sendOptions`，`otherOptions`，`options.requestConfigList[requestName]`，`defaultOptions`（由高到低）
@@ -151,8 +149,6 @@ setTimeout(()=>{
 ## iaxios实例方法
 - #createRequest
 - #setOptions
-- #getOptionItem //获取某项配置
-
 
 # Options
 ```javascript
@@ -210,6 +206,14 @@ setTimeout(()=>{
 
 
 # 更新日志
+## v0.1.4
+- 重构`options`的获取机制，在执行`request`发送时，`options`会做一次合并，后续所有配置均在此合并后的对象上读取，合并规则：
+```javascript
+var mergeOptions = util.extend(true, {}, iaxios.options, iaxios.options.requestConfigList[requestName], otherOptions, sendOptions);
+```
+- 删除`getOptionItem`方法
+- 处理一些已知的BUG
+
 ## v0.1.3
 - 为`handlers`的相关`convert`方法添加第二个参数`requestConfig`
 - 更新文档：添加options注释

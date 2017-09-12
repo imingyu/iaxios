@@ -1,14 +1,13 @@
 import Feature from './feature.js';
 import * as util from './util.js';
 
-
-
 var defaultConvert = data => {
     return data;
 }
 
 var getConvert = (name, process) => {
-    var convert = process.getIAxiosOptionItem('handlers.' + name);
+    var handlers = process.computeOptions.handlers,
+        convert = handlers ? handlers[name] : null;
     convert = typeof convert === 'function' ? convert : defaultConvert;
     return convert;
 }
@@ -28,13 +27,14 @@ export default class Process {
     run() {
         //执行run函数后，即锁定当前配置中的Feature，解释后续再有功能的配置变化，也不会执行，函数除外
         var process = this;
+        process.requestItemConfig = process.iaxios.options.requestConfigList[process.requestName];
+        process.computeOptions = util.extend(true, {}, process.iaxios.options, util.standardRequestConfigItem(process.requestItemConfig), process.otherOptions, process.sendOptions);
 
         function CancelPromise(executor) {
             var p = new Promise(function (resolve, reject) {
-                // before
                 return executor(resolve, reject);
             });
-            // after
+            /*eslint no-proto: 0*/
             p.__proto__ = CancelPromise.prototype;
             return p;
         }
@@ -44,9 +44,8 @@ export default class Process {
             return process.cancel(data);
         }
 
-
         var promise = new CancelPromise((resolve, reject) => {
-            var orgFeatures = process.getIAxiosOptionItem('features');
+            var orgFeatures = process.computeOptions.features;
             var keys = Object.keys(orgFeatures).filter(name => {
                 var f = orgFeatures[name];
                 return !!f.enabled;//只抓取已启用的功能
@@ -63,11 +62,10 @@ export default class Process {
             process.featureInstances = features;
             process.featureOptions = orgFeatures;
 
-
             features.forEach(featureIns => {
                 process.use(function (next) {
                     if (process.isCancel) {
-                        reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
+                        reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig));
                         return;
                     }
 
@@ -78,19 +76,19 @@ export default class Process {
                                 if (typeof featureIns.breforeResolve === 'function') {
                                     featureIns.breforeResolve(process);
                                 }
-                                resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
+                                resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig));
                             } else {
                                 if (process.stack.length > 0) {
                                     next();
                                 } else {
-                                    resolve(getConvert('resolveConvert', process)(data.data, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
+                                    resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig));
                                 }
                             }
                         } else {
                             if (typeof featureIns.beforeReject === 'function') {
                                 featureIns.beforeReject(process);
                             }
-                            reject(getConvert('rejectConvert', process)(process.dataMap, process.getIAxiosOptionItem(`requestConfigList['${process.requestName}']`)));
+                            reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig));
                         }
                     });
                 })
@@ -107,20 +105,6 @@ export default class Process {
             this.cancelToken.cancel(data);
         }
     }
-
-    getIAxiosOptionItem(propExp) {
-        var configProp = `requestConfigList['${this.requestName}']`,
-            sendOptions = this.requestArgs.length > 1 ? this.requestArgs[this.requestArgs.length - 1] : undefined,
-            otherOptions = this.otherOptions;
-        if (configProp == propExp) {
-            return this.iaxios.getOptionItem(propExp, sendOptions, otherOptions);
-        } else {
-            var requestConfig = this.getIAxiosOptionItem(configProp),
-                standardConfig = util.standardRequestConfigItem(requestConfig);
-            return this.iaxios.getOptionItem.call(this.iaxios, propExp, sendOptions, otherOptions, typeof standardConfig === 'object' ? standardConfig : undefined);
-        }
-    }
-
     use(handler) {
         if (typeof handler !== 'function') return;
         this.stack.push(handler);
