@@ -35,8 +35,8 @@ class IAxios {
                 process = new Process();
             process.iaxios = iaxiosIns;
             process.otherOptions = otherOptions;
-            process.senderOptions = ops;
-            process.senderModel = model;
+            process.sendOptions = ops;
+            process.sendModel = model;
             process.requestName = requestName;
             process.requestArgs = requestArgs;
             process.isCancel = false;
