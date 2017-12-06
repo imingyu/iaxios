@@ -168,11 +168,20 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
             ajaxOptions.params += '&' + util.paramsSerializer(requestModel);
         }
     } else {
-        ajaxOptions.data = ajaxOptions.data || {};
-        if (typeof ajaxOptions.data === 'object') {
-            util.extend(true, ajaxOptions.data, requestModel);
-        } else if (typeof ajaxOptions.data === 'string') {
-            ajaxOptions.data += '&' + util.stringifyData(requestModel);
+        if (typeof requestModel === 'string' && requestModel != '') {
+            if (typeof ajaxOptions.data === 'string') {
+                ajaxOptions.data += '&' + util.stringifyData(requestModel);
+            } else if (typeof ajaxOptions.data === 'object') {
+                ajaxOptions.data = util.stringifyData(requestModel) + '&' + requestModel;
+            } else {
+                ajaxOptions.data = requestModel;
+            }
+        } else if (typeof requestModel === 'object') {
+            if (typeof ajaxOptions.data === 'object') {
+                util.extend(true, ajaxOptions.data, requestModel);
+            } else if (typeof ajaxOptions.data === 'string') {
+                ajaxOptions.data += '&' + util.stringifyData(requestModel);
+            }
         }
     }
     process.cancelToken = cancelTokenSource;
