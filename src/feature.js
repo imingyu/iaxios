@@ -181,6 +181,8 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
                 util.extend(true, ajaxOptions.data, requestModel);
             } else if (typeof ajaxOptions.data === 'string') {
                 ajaxOptions.data += '&' + util.stringifyData(requestModel);
+            } else {
+                ajaxOptions.data = requestModel;
             }
         }
     }

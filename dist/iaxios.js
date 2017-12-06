@@ -412,6 +412,8 @@ var senderFeature = new Feature('sender', 'sending', function (process) {
                 extend(true, ajaxOptions.data, requestModel);
             } else if (typeof ajaxOptions.data === 'string') {
                 ajaxOptions.data += '&' + stringifyData(requestModel);
+            } else {
+                ajaxOptions.data = requestModel;
             }
         }
     }
