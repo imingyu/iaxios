@@ -504,7 +504,7 @@ var Process = function () {
                 features.forEach(function (featureIns) {
                     process.use(function (next) {
                         if (process.isCancel) {
-                            reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig));
+                            reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig, process.computeOptions));
                             return;
                         }
 
@@ -515,19 +515,19 @@ var Process = function () {
                                     if (typeof featureIns.breforeResolve === 'function') {
                                         featureIns.breforeResolve(process);
                                     }
-                                    resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig));
+                                    resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig, process.computeOptions));
                                 } else {
                                     if (process.stack.length > 0) {
                                         next();
                                     } else {
-                                        resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig));
+                                        resolve(getConvert('resolveConvert', process)(data.data, process.requestItemConfig, process.computeOptions));
                                     }
                                 }
                             } else {
                                 if (typeof featureIns.beforeReject === 'function') {
                                     featureIns.beforeReject(process);
                                 }
-                                reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig));
+                                reject(getConvert('rejectConvert', process)(process.dataMap, process.requestItemConfig, process.computeOptions));
                             }
                         });
                     });

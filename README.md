@@ -206,6 +206,9 @@ setTimeout(()=>{
 
 
 # 更新日志
+## v0.1.8
+- 在`rejectConvert`，`resolveConvert`回调中新增参数`computeOptions`——计算后的`axios`请求配置对象
+
 ## v0.1.7
 - 处理一些已知的BUG
 
