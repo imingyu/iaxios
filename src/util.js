@@ -77,17 +77,22 @@ export var standardFeaturesOptions = ops => {
     return ops;
 }
 
+export var transformJsonp = (content, callbackName) => {
+    var fun = new Function('var ' + callbackName + '=function(data){return data;}; return ' + callbackName + '(' + content + ');');
+    return fun();
+}
+
 export var standardRequestConfigItem = (cfg) => {
     if (!cfg) return;
     if (typeof cfg === 'object') {
         standardFeaturesOptions(cfg);
         var result = {
-                features: cfg.features,
-                handlers: cfg.handlers || {},
-                requestConfigList: undefined,
-                axios: undefined,
-                validators: undefined
-            },
+            features: cfg.features,
+            handlers: cfg.handlers || {},
+            requestConfigList: undefined,
+            axios: undefined,
+            validators: undefined
+        },
             axiosOps = {};
 
         Object.keys(cfg).forEach(item => {
@@ -130,9 +135,9 @@ export var extend = function () {
                 return jQuery.type(obj) === 'function'
             },
             isArray: Array.isArray ||
-            function (obj) {
-                return jQuery.type(obj) === 'array'
-            },
+                function (obj) {
+                    return jQuery.type(obj) === 'array'
+                },
             isWindow: function (obj) {
                 return obj != null && obj == obj.window
             },

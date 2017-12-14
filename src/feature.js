@@ -6,9 +6,6 @@ const stages = ['before', 'sending', 'after'];
 var check = (feature, checkData, resolve, process) => {
     var checkResult = feature.checker(checkData, process),
         stage = `${feature.stage}.${feature.name}`;
-    if (typeof checkResult === 'undefined') {
-        console.log(process);
-    }
     if (util.isPromise(checkResult)) {
         checkResult.then(result => {
             resolve({
@@ -172,7 +169,7 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
             if (typeof ajaxOptions.data === 'string') {
                 ajaxOptions.data += '&' + util.stringifyData(requestModel);
             } else if (typeof ajaxOptions.data === 'object') {
-                ajaxOptions.data = util.stringifyData(requestModel) + '&' + requestModel;
+                ajaxOptions.data = util.stringifyData(ajaxOptions.data) + '&' + requestModel;
             } else {
                 ajaxOptions.data = requestModel;
             }
@@ -186,9 +183,95 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
             }
         }
     }
-    process.cancelToken = cancelTokenSource;
+
+    // 是否是jsonp方式发送
+    var jsonp = process.computeOptions.features.jsonp;
+    if (jsonp && jsonp.enabled) {
+        ajaxOptions.params = ajaxOptions.params || '';
+        if(ajaxOptions.params){
+            ajaxOptions.params += '&' + jsonp.callback + "=" + callbackName;
+        }else{
+            ajaxOptions.params += jsonp.callback + "=" + callbackName;
+        }
+
+        var callbackName = 'axios' + new Date().getTime();
+        if (typeof jsonp.link === 'function') {
+            ajaxOptions.params = jsonp.link(ajaxOptions.params, ajaxOptions.data, ajaxOptions)
+        } else {
+            if (typeof ajaxOptions.data === 'string') {
+                ajaxOptions.params += '&' + ajaxOptions.data;
+            } else if (typeof ajaxOptions.data === 'object') {
+                ajaxOptions.params += '&' + util.stringifyData(ajaxOptions.data);
+            }
+        }
+        
+
+        ajaxOptions.adapter = function (config) {
+            return new Promise((resolve, reject) => {
+                var script = document.createElement('script');
+                var src = config.url;
+
+                if (config.params) {
+                    src += (src.indexOf('?') >= 0 ? '&' : '?') + config.params;
+                }
+
+                script.async = true;
+
+                var isAbort = false;
+
+                var old = window[callbackName];
+                window[callbackName] = function (responseData) {
+                    window[jsonp] = old;
+
+                    if (isAbort) {
+                        return;
+                    }
+
+                    var response = {
+                        data: responseData,
+                        status: 200
+                    }
+
+                    resolve(response);
+                };
+
+                script.onload = script.onreadystatechange = function () {
+
+                    if (!script.readyState || /loaded|complete/.test(script.readyState)) {
+
+                        script.onload = script.onreadystatechange = null;
+
+                        if (script.parentNode) {
+                            script.parentNode.removeChild(script);
+                        }
+
+                        script = null;
+                    }
+                };
+                script.onerror = function () {
+                    reject(new Error('Network error'));
+                }
+
+                if (config.cancelToken) {
+                    config.cancelToken.promise.then(function (cancel) {
+                        if (!script) {
+                            return;
+                        }
+
+                        isAbort = true;
+                        reject(cancel);
+                    });
+                }
+
+                script.src = src;
+
+                document.head.appendChild(script);
+            })
+        }
+    }
 
     //5.开始发送请求
+    process.cancelToken = cancelTokenSource;
     return iaxios.axios.request(ajaxOptions);
 }, function (res, process) {
     var handlerCheckResult = process.computeOptions.handlers.checkResult;

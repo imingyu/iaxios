@@ -23,7 +23,9 @@ export default {
             enabled: false
         },
         jsonp: {
-            enabled: false
+            enabled: false,
+            callback: 'callback',
+            link: null // 怎样连接params和data？
         }, //接口是否以jsonp方式发送
         validator: {
             enabled: false

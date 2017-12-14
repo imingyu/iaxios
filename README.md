@@ -13,7 +13,7 @@
     - 发送前认证用户
     - 发送前验证参数
     - 请求完成后convert response
-    - 可使用jsonp方式发送请求（暂未实现）
+    - 可使用jsonp方式发送请求
 - 可注册插件（暂未开放）
 - 取消发送请求
 
@@ -206,6 +206,9 @@ setTimeout(()=>{
 
 
 # 更新日志
+## v0.1.9
+- 添加`jsonp`支持
+
 ## v0.1.8
 - 在`rejectConvert`，`resolveConvert`回调中新增参数`computeOptions`——计算后的`axios`请求配置对象
 
