@@ -188,13 +188,12 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
     var jsonp = process.computeOptions.features.jsonp;
     if (jsonp && jsonp.enabled) {
         ajaxOptions.params = ajaxOptions.params || '';
-        if(ajaxOptions.params){
+        var callbackName = 'axios' + new Date().getTime();
+        if (ajaxOptions.params) {
             ajaxOptions.params += '&' + jsonp.callback + "=" + callbackName;
-        }else{
+        } else {
             ajaxOptions.params += jsonp.callback + "=" + callbackName;
         }
-
-        var callbackName = 'axios' + new Date().getTime();
         if (typeof jsonp.link === 'function') {
             ajaxOptions.params = jsonp.link(ajaxOptions.params, ajaxOptions.data, ajaxOptions)
         } else {
@@ -204,7 +203,7 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
                 ajaxOptions.params += '&' + util.stringifyData(ajaxOptions.data);
             }
         }
-        
+
 
         ajaxOptions.adapter = function (config) {
             return new Promise((resolve, reject) => {

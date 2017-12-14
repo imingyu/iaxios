@@ -1,6 +1,6 @@
 {
     "name": "iaxios",
-    "version": "0.1.9",
+    "version": "0.2.0",
     "description": "使用axios库发送请求，并封装多组灵活的、高效的工具插件和配置规约",
     "main": "dist/iaxios.js",
     "scripts": {
