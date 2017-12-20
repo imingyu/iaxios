@@ -3,11 +3,18 @@ export var paramsSerializer = obj => {
     return Qs.stringify(obj, { arrayFormat: 'brackets' });//如何序列化params，params会拼接的url后面
 }
 export var stringifyData = obj => {
-    return Qs.stringify(obj);
+    return isString(obj) ? obj : Qs.stringify(obj);
 }
 
 export var isPromise = obj => {
     return obj && obj.then && obj.catch;
+}
+
+export var isObject = obj => {
+    return typeof obj === 'object';
+}
+export var isString = obj => {
+    return typeof obj === 'string';
 }
 
 export var uniqueID = () => {
@@ -21,6 +28,22 @@ export var getValue = (propExp, obj) => {
     } catch (error) {
     }
 };
+
+var regFormatString = /{([^}]*)}/g;
+export var getFormatItems = (template = '') => {
+    const items = [];
+    let item;
+    while (item = regFormatString.exec(template)) {
+        items.push(item[1]);
+    }
+    return items;
+}
+
+export var formatString = (template = '', values = {}) => {
+    return template.replace(regFormatString, function (match, key) {
+        return key in values ? values[key] : match;
+    });
+}
 
 export var validOptions = ops => {
     if (typeof ops === 'object') {

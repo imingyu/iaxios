@@ -22,6 +22,17 @@ export default {
         auth: {
             enabled: false
         },
+        formatUrl: {
+            enabled: true,
+            removeFormatedItem: true /*
+            格式化后，是否移除已经用到的格式化项
+            支持4中值：
+            true:移除所有
+            false:保留所有
+            ['item1','item2']:移除'item1'和'item2'
+            {item1:true,item2:false}:移除'item1',保留'item2'
+             */
+        },//格式化url
         jsonp: {
             enabled: false,
             callback: 'callback',

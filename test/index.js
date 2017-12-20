@@ -22,6 +22,38 @@ var orgOptionis = {
         'user.remove': {
             url: '/user/remove',
             method: 'delete'
+        },
+        'user.model': {
+            url: '/user/{id}'
+        },
+        'user.format1': {
+            url: '/user/{id}/{name}',
+            method: 'post',
+            features: {
+                formatUrl: {
+                    removeFormatedItem: ['name']
+                }
+            }
+        },
+        'user.format2': {
+            url: '/user/{id}/{name}',
+            method: 'post',
+            features: {
+                formatUrl: {
+                    removeFormatedItem: {
+                        id: true
+                    }
+                }
+            }
+        },
+        'user.format3': {
+            url: '/user/{id}/{name}',
+            method: 'post',
+            features: {
+                formatUrl: {
+                    removeFormatedItem: false
+                }
+            }
         }
     },
     features: {
@@ -53,78 +85,6 @@ describe('options', () => {
             assert.isTrue(api.url === orgOptionis.requestConfigList["user.add"].url);
             assert.isTrue(api.method === orgOptionis.requestConfigList["user.add"].method);
         })
-        // it('getOptionItem.3', () => {
-        //     var auth = iaxios.getOptionItem('requestConfigList["user.login"].features.auth');
-        //     assert.isTrue(auth === false);
-        // })
-        // it('getOptionItem.4', () => {
-        //     var auth = iaxios.getOptionItem('features.auth');
-        //     assert.isTrue(auth.enabled);
-        //     assert.isTrue(auth.handler === orgOptionis.features.auth.handler);
-        // })
-        // it('getOptionItem.4', () => {
-        //     var item = iaxios.getOptionItem('features.jsonp');
-        //     assert.isObject(item);
-        //     assert.isTrue(item.enabled === false);
-        // })
-        // it('getOptionItem.5', () => {
-        //     var item = iaxios.getOptionItem('other1');
-        //     assert.isTrue(item === '1');
-        // })
-        // it('getOptionItem.6', () => {
-        //     var item = iaxios.getOptionItem('features2');
-        //     assert.isTrue(item === '3');
-        // })
-        // it('getOptionItem.7', () => {
-        //     var item = iaxios.getOptionItem('features.');
-        //     assert.isTrue(typeof item === 'undefined');
-        // })
-        // it('getOptionItem.8', () => {
-        //     var item = iaxios.getOptionItem('requestConfigList.');
-        //     assert.isTrue(typeof item === 'undefined');
-        // })
-        // it('getOptionItem.9', () => {
-        //     var ins = IAxios.create();
-        //     try {
-        //         ins.setOptions({
-        //             features: 123
-        //         })
-        //     } catch (error) {
-        //         assert.isTrue(true);
-        //     }
-
-        //     var item = ins.getOptionItem('features.auth.enabled');
-        //     assert.isTrue(item);
-        // })
-        // it('getOptionItem.10', () => {
-        //     var ins = iaxios;
-        //     orgOptionis.features.auth.enabled = false;
-        //     var item = ins.getOptionItem('features.auth.enabled');
-        //     assert.isTrue(item);
-
-        //     item = ins.getOptionItem('features.auth.handler');
-        //     assert.isTrue(item === orgOptionis.features.auth.handler);
-
-        //     iaxios.setOptions({
-        //         features: {
-        //             auth: {
-        //                 enabled: false
-        //             }
-        //         }
-        //     })
-        //     item = ins.getOptionItem('features.auth.enabled');
-        //     assert.isTrue(item === false);
-        // })
-        // it('getOptionItem.11', () => {
-        //     iaxios.setOptions({
-        //         lk: 1,
-        //         features: {
-        //             auth: false
-        //         }
-        //     })
-        //     item = iaxios.getOptionItem('features.auth.enabled');
-        //     assert.isTrue(item === false);
-        // })
     })
 })
 
@@ -243,6 +203,83 @@ describe('auth', () => {
                 assert.isTrue(false);
                 done();
             })
+        })
+    })
+})
+
+describe('formatUrl', () => {
+    it('formatUrl.1', done => {
+        var iaxios = IAxios.create();
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = iaxios.createRequest(key);
+        });
+
+        UserApi.model({
+            id: 1
+        }).catch(map => {
+            var error = map.find(item => {
+                return item.stage === 'sending.sender'
+            }).data;
+            assert.isTrue(error.config.url === '/user/1');
+            done();
+        })
+    })
+    it('formatUrl.2', done => {
+        var iaxios = IAxios.create();
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = iaxios.createRequest(key);
+        });
+
+        UserApi.format1({
+            id: 1,
+            name: 'Tom'
+        }).catch(map => {
+            var error = map.find(item => {
+                return item.stage === 'sending.sender'
+            }).data;
+            assert.isTrue(error.config.url === '/user/1/Tom');
+            assert.isTrue(error.config.data === 'id=1');
+            done();
+        })
+    })
+    it('formatUrl.3', done => {
+        var iaxios = IAxios.create();
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = iaxios.createRequest(key);
+        });
+
+        UserApi.format2({
+            id: 1,
+            name: 'Tom'
+        }).catch(map => {
+            var error = map.find(item => {
+                return item.stage === 'sending.sender'
+            }).data;
+            assert.isTrue(error.config.url === '/user/1/Tom');
+            assert.isTrue(error.config.data === 'name=Tom');
+            done();
+        })
+    })
+    it('formatUrl.4', done => {
+        var iaxios = IAxios.create();
+        var UserApi = {};
+        Object.keys(orgOptionis.requestConfigList).forEach(key => {
+            UserApi[key.replace('user.', '')] = iaxios.createRequest(key);
+        });
+
+        UserApi.format3({
+            id: 1,
+            name: 'Tom'
+        }).catch(map => {
+            var error = map.find(item => {
+                return item.stage === 'sending.sender'
+            }).data;
+            assert.isTrue(error.config.url === '/user/1/Tom');
+            assert.isTrue(error.config.data === 'id=1&name=Tom');
+            done();
         })
     })
 })

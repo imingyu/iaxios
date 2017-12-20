@@ -14,6 +14,7 @@
     - 发送前验证参数
     - 请求完成后convert response
     - 可使用jsonp方式发送请求
+    - formatUrl功能
 - 可注册插件（暂未开放）
 - 取消发送请求
 
@@ -171,13 +172,26 @@ setTimeout(()=>{
             return util.stringifyData(data);
         }]
     },
-    validators: {},//验证器列表
+    validators: {}, //验证器列表
     features: { //启用iaxios的哪些功能？
         auth: {
             enabled: false
         },
+        formatUrl: {
+            enabled: true,
+            removeFormatedItem: true /*
+            格式化后，是否移除已经用到的格式化项
+            支持4中值：
+            true:移除所有
+            false:保留所有
+            ['item1','item2']:移除'item1'和'item2'
+            {item1:true,item2:false}:移除'item1',保留'item2'
+             */
+        },//格式化url
         jsonp: {
-            enabled: false
+            enabled: false,
+            callback: 'callback',
+            link: null // 怎样连接params和data？
         }, //接口是否以jsonp方式发送
         validator: {
             enabled: false
@@ -206,6 +220,9 @@ setTimeout(()=>{
 
 
 # 更新日志
+## v0.2.1
+- 添加`formatUrl`支持
+
 ## v0.2.0
 - 添加`jsonp`支持
 

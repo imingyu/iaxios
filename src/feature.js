@@ -132,13 +132,163 @@ var validatorFeature = new Feature('validator', 'before', function (process) {
 });
 Feature.map[validatorFeature.name] = validatorFeature;
 
+var serialiarParams = (handler, params, data, model) => {
+    if (util.isObject(params)) {
+        var dataStr = '';
+        if (util.isObject(data)) {
+            util.extend(true, params, data);
+        } else if (util.isString(data) && data.trim() != '') {
+            dataStr = handler(data);
+        }
+
+        var modelStr = '';
+        if (util.isObject(model)) {
+            util.extend(true, params, model);
+        } else if (util.isString(model) && model.trim() != '') {
+            dataStr = handler(model);
+        }
+
+        if (!dataStr && !modelStr) {
+        } else {
+            params = handler(params);
+            if (dataStr) {
+                params += '&' + dataStr;
+            }
+            if (modelStr) {
+                params += '&' + modelStr;
+            }
+        }
+    } else if (util.isString(params)) {
+        var dataStr = '';
+        if (util.isObject(data) && util.isObject(model)) {
+            dataStr = handler(util.extend(true, {}, data, model));
+        } else if (util.isObject(data) && util.isString(model)) {
+            dataStr = handler(data);
+            if (model && model.trim() !== '') {
+                dataStr += '&' + handler(model);
+            }
+        } else if (util.isString(data) && util.isObject(model)) {
+            dataStr = handler(model);
+            if (data && data.trim() !== '') {
+                dataStr = handler(data) + '&' + dataStr;
+            }
+        } else if (util.isString(data) && util.isString(model)) {
+            if (data && data.trim() !== '') {
+                dataStr += '&' + handler(data);
+            }
+            if (model && model.trim() !== '') {
+                dataStr += '&' + handler(model);
+            }
+        }
+
+        if (dataStr) {
+            params += '&' + dataStr;
+        }
+    } else {
+        var dataStr = '';
+        if (util.isObject(data) && util.isObject(model)) {
+            dataStr = handler(util.extend(true, {}, data, model));
+        } else if (util.isObject(data) && util.isString(model)) {
+            dataStr = handler(data);
+            if (model && model.trim() !== '') {
+                dataStr += '&' + handler(model);
+            }
+        } else if (util.isString(data) && util.isObject(model)) {
+            dataStr = handler(model);
+            if (data && data.trim() !== '') {
+                dataStr = handler(data) + '&' + dataStr;
+            }
+        } else if (util.isString(data) && util.isString(model)) {
+            if (data && data.trim() !== '') {
+                dataStr += '&' + handler(data);
+            }
+            if (model && model.trim() !== '') {
+                dataStr += '&' + handler(model);
+            }
+        } else if (util.isObject(data)) {
+            dataStr = data;
+        } else if (util.isString(data)) {
+            dataStr = handler(data);
+        } else if (util.isObject(model)) {
+            dataStr = model;
+        } else if (util.isString(model)) {
+            dataStr = handler(model);
+        }
+
+        if (dataStr) {
+            params = dataStr;
+        }
+    }
+    return params;
+}
+
+var serialiarData = (handler, data, model) => {
+    var dataStr = '';
+    if (util.isObject(data) && util.isObject(model)) {
+        return util.extend(true, {}, data, model);
+    } else if (util.isObject(data) && util.isString(model)) {
+        dataStr = handler(data);
+        if (model && model.trim() !== '') {
+            dataStr += '&' + handler(model);
+        }
+        return dataStr;
+    } else if (util.isString(data) && util.isObject(model)) {
+        dataStr = handler(model);
+        if (data && data.trim() !== '') {
+            dataStr = handler(data) + '&' + dataStr;
+        }
+        return dataStr;
+    } else if (util.isString(data) && util.isString(model)) {
+        if (data && data.trim() !== '') {
+            dataStr += '&' + handler(data);
+        }
+        if (model && model.trim() !== '') {
+            dataStr += '&' + handler(model);
+        }
+        return dataStr;
+    } else if (util.isObject(data)) {
+        return data;
+    } else if (util.isString(data)) {
+        return data;
+    } else if (util.isObject(model)) {
+        return model;
+    } else if (util.isString(model)) {
+        return model;
+    } else {
+        return {}
+    }
+}
+
+var requestDataHandler = (methodType, ajaxOptions, requestModel, paramsSerializer, stringifyData) => {
+    if (methodType === 'get') {
+        ajaxOptions.params = serialiarParams(paramsSerializer, ajaxOptions.params, ajaxOptions.data, requestModel);
+    } else {
+        ajaxOptions.data = serialiarData((data) => {
+            return stringifyData(data, {});
+        }, ajaxOptions.data, requestModel);
+    }
+}
+
 //发送请求功能
 const senderFeature = new Feature('sender', 'sending', function (process) {
     var iaxios = process.iaxios,
         requestName = process.requestName,
         requestConfig = process.requestItemConfig,
         ajaxOptions = process.computeOptions.axios,
-        handlers = process.computeOptions.handlers;
+        handlers = process.computeOptions.handlers,
+        requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
+
+    //覆盖序列化配置
+    var paramsSerializer = ajaxOptions.paramsSerializer || util.paramsSerializer;
+    ajaxOptions.paramsSerializer = paramsSerializer;
+    var transformRequest = Array.isArray(ajaxOptions.transformRequest) ? ajaxOptions.transformRequest : [function (data) {
+        return util.stringifyData(data);
+    }]
+    ajaxOptions.transformRequest = transformRequest;
+    var stringifyData = transformRequest[0] || function (data) {
+        return util.stringifyData(data);
+    };
+    ajaxOptions.transformRequest[0] = stringifyData;
 
     //3.获取请求的真实url：getUrl
     if (typeof handlers.getUrl === 'function') {
@@ -152,37 +302,53 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
     if (!ajaxOptions.url || String.prototype.trim.call(ajaxOptions.url) === '') {
         ajaxOptions.url = requestName + '';
     }
+    //格式化url
+    var featureFormartUrl = process.computeOptions.features.formatUrl;
+    var urlFormater = featureFormartUrl.formater || util.formatString;
+    var getFormatItems = featureFormartUrl.getFormatItems || util.getFormatItems;
+    var formatItems = getFormatItems(ajaxOptions.url);
+    if (featureFormartUrl.enabled && formatItems.length > 0) {
+        var params = util.isObject(ajaxOptions.params) ? ajaxOptions.params : {},
+            data = util.isObject(ajaxOptions.data) ? ajaxOptions.data : {},
+            model = util.isObject(requestModel) ? requestModel : {};
 
-    //4.应用计算后的axios配置信息：axios.request
-    var cancelTokenSource = axios.CancelToken.source();
-    ajaxOptions.cancelToken = cancelTokenSource.token;
-    var requestModel = process.requestArgs && process.requestArgs.length > 0 ? process.requestArgs[0] : {};
-    if ((ajaxOptions.method + '').toLowerCase() === 'get') {
-        ajaxOptions.params = ajaxOptions.params || {};
-        if (typeof ajaxOptions.params === 'object') {
-            util.extend(true, ajaxOptions.params, requestModel);
-        } else if (typeof ajaxOptions.params === 'string') {
-            ajaxOptions.params += '&' + util.paramsSerializer(requestModel);
-        }
-    } else {
-        if (typeof requestModel === 'string' && requestModel != '') {
-            if (typeof ajaxOptions.data === 'string') {
-                ajaxOptions.data += '&' + util.stringifyData(requestModel);
-            } else if (typeof ajaxOptions.data === 'object') {
-                ajaxOptions.data = util.stringifyData(ajaxOptions.data) + '&' + requestModel;
+        var values = util.extend(true, {},
+            params,
+            data,
+            model
+        );
+        ajaxOptions.url = urlFormater(ajaxOptions.url, values);
+
+        //是否需要移除format items
+        if (featureFormartUrl.removeFormatedItem) {
+            if (Array.isArray(featureFormartUrl.removeFormatedItem) && featureFormartUrl.removeFormatedItem.length > 0) {
+                featureFormartUrl.removeFormatedItem.forEach(prop => {
+                    delete params[prop];
+                    delete data[prop];
+                    delete model[prop];
+                })
+            } else if (util.isObject(featureFormartUrl.removeFormatedItem)) {
+                for (let prop in featureFormartUrl.removeFormatedItem) {
+                    if (featureFormartUrl.removeFormatedItem[prop]) {
+                        delete params[prop];
+                        delete data[prop];
+                        delete model[prop];
+                    }
+                }
             } else {
-                ajaxOptions.data = requestModel;
-            }
-        } else if (typeof requestModel === 'object') {
-            if (typeof ajaxOptions.data === 'object') {
-                util.extend(true, ajaxOptions.data, requestModel);
-            } else if (typeof ajaxOptions.data === 'string') {
-                ajaxOptions.data += '&' + util.stringifyData(requestModel);
-            } else {
-                ajaxOptions.data = requestModel;
+                formatItems.forEach(prop => {
+                    delete params[prop];
+                    delete data[prop];
+                    delete model[prop];
+                })
             }
         }
     }
+
+    //计算axios 需要发送的数据
+    ajaxOptions.method = ajaxOptions.method || 'get';
+    var methodType = (ajaxOptions.method + '').toLowerCase();
+    requestDataHandler(methodType, ajaxOptions, requestModel, paramsSerializer, stringifyData);
 
     // 是否是jsonp方式发送
     var jsonp = process.computeOptions.features.jsonp;
@@ -200,10 +366,9 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
             if (typeof ajaxOptions.data === 'string') {
                 ajaxOptions.params += '&' + ajaxOptions.data;
             } else if (typeof ajaxOptions.data === 'object') {
-                ajaxOptions.params += '&' + util.stringifyData(ajaxOptions.data);
+                ajaxOptions.params += '&' + paramsSerializer(ajaxOptions.data);
             }
         }
-
 
         ajaxOptions.adapter = function (config) {
             return new Promise((resolve, reject) => {
@@ -269,8 +434,13 @@ const senderFeature = new Feature('sender', 'sending', function (process) {
         }
     }
 
+    //绑定取消
+    var cancelTokenSource = axios.CancelToken.source();
+    ajaxOptions.cancelToken = cancelTokenSource.token;
+
     //5.开始发送请求
     process.cancelToken = cancelTokenSource;
+
     return iaxios.axios.request(ajaxOptions);
 }, function (res, process) {
     var handlerCheckResult = process.computeOptions.handlers.checkResult;
